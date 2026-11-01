@@ -1,0 +1,50 @@
+# A pushed version tag such as v0.1.0 builds the app and creates a draft release to check and publish by hand.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check that the tag matches the app version
+        run: |
+          $version = (Get-Content app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match app version $version" }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Run tests
+        working-directory: app/src-tauri
+        run: cargo test --locked
+
+      - name: Build
+        working-directory: app/src-tauri
+        run: cargo build --release --locked
+
+      - name: Collect license texts
+        working-directory: app/src-tauri
+        run: |
+          cargo install cargo-about --locked --features cli
+          cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html
+
+      - name: Package
+        run: |
+          $folder = "h-mouse-config-$env:VERSION"
+          New-Item -ItemType Directory $folder
+          Copy-Item app/src-tauri/target/release/h-mouse-config.exe, LICENSE, README.md, app/src-tauri/THIRD-PARTY-LICENSES.html, app/ui/fonts/*-LICENSE.txt $folder
+          Compress-Archive $folder "$folder-windows.zip"
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" "h-mouse-config-$env:VERSION-windows.zip" --draft --generate-notes --title "H-Mouse Config $env:VERSION"

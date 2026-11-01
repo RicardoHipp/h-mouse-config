@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Third-party licenses</title>
+<style>
+body { max-width: 860px; margin: 24px auto; padding: 0 16px; font-family: system-ui, sans-serif; }
+pre { white-space: pre-wrap; padding: 12px; background: #f2f2f2; }
+</style>
+</head>
+<body>
+<h1>Third-party licenses</h1>
+<p>H-Mouse Config includes these Rust libraries.</p>
+{{#each licenses}}
+<h2>{{name}}</h2>
+<ul>
+{{#each used_by}}
+<li>{{crate.name}} {{crate.version}}</li>
+{{/each}}
+</ul>
+<pre>{{text}}</pre>
+{{/each}}
+</body>
+</html>

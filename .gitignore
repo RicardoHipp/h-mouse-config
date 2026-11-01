@@ -1,0 +1,8 @@
+# Build output
+target/
+app/src-tauri/gen/
+release/
+
+# Mouse exports
+*.bin
+*.csv

@@ -1,0 +1,2520 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H-Mouse Config</title>
+<style>
+:root {
+  --ink: #2730a8;
+  --ink-strong: #171c74;
+  --ink-soft: #e9ebfb;
+  --ink-line: #c9cdf0;
+  --paper: #ffffff;
+  --page: #f5f6fc;
+  --text: #1c1f3f;
+  --muted: #666a8c;
+  --danger: #b3263e;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--page);
+  color: var(--text);
+  font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100%; }
+
+.nav {
+  background: var(--paper);
+  border-right: 1px solid var(--ink-line);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.brand { font-weight: 700; font-size: 18px; color: var(--ink-strong); padding: 0 10px 18px; letter-spacing: .02em; }
+.nav button {
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 10px;
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+}
+.nav button:hover { background: var(--ink-soft); color: var(--ink-strong); }
+.nav button[aria-current="page"] { background: var(--ink); color: #fff; }
+
+.nav-tools { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--ink-line); display: flex; flex-direction: column; gap: 2px; }
+.nav-tools-title { padding: 0 10px 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.nav .nav-tools button { padding: 7px 10px; font-weight: 600; font-size: 13px; }
+.nav .nav-tools button.danger { background: var(--danger); color: #fff; }
+.nav-tools-status { margin: 4px 0 0; padding: 0 10px; min-height: 36px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.main { display: flex; flex-direction: column; min-width: 0; overflow: auto; }
+.top {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 28px 12px 22px;
+  color: var(--muted);
+}
+.top-line { position: absolute; left: 0; bottom: -3px; width: 100%; height: 6px; overflow: visible; pointer-events: none; }
+.top-line path { fill: none; stroke: var(--ink-line); stroke-width: 1.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.top h1 { font-size: 22px; margin: 0 auto 0 0; color: var(--ink-strong); }
+.profile-box { display: inline-flex; align-items: center; gap: 8px; }
+.profile-box .dropdown { flex: none; width: 210px; z-index: 30; }
+.profile-box .dropdown-toggle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-name { flex: none; width: 210px; padding: 5px 10px; border: 1px solid var(--ink); border-radius: 8px; background: var(--paper); }
+.profile-rename { width: 30px; height: 30px; padding: 0; border: 1px solid var(--ink-line); border-radius: 8px; background: var(--paper); color: var(--ink-strong); }
+.profile-rename:hover { background: var(--ink-soft); }
+.language-flag { width: 38px; display: inline-flex; align-items: center; justify-content: center; }
+.language-flag svg { width: 26px; height: auto; display: block; overflow: visible; }
+.language-flag path { fill: none; stroke: var(--ink); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
+.language-flag .flag-fill { fill: var(--ink); }
+.language-flag .flag-cross { stroke-width: 3; stroke-linecap: butt; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #2c9b62; }
+.dot.idle { background: #d8a200; }
+.dot.off { background: var(--danger); }
+.readonly-badge { padding: 2px 9px; border-radius: 10px; background: var(--ink-soft); color: var(--ink-strong); }
+[inert] { cursor: default; }
+/* Before the first read the page only holds sample values, so it must not look like real data. */
+.no-data .page { opacity: .3; pointer-events: none; }
+.page { padding: 18px 28px 28px; }
+[hidden] { display: none !important; }
+
+.card { background: var(--paper); border: 1px solid var(--ink-line); border-radius: 12px; }
+
+/* Tasten */
+.keys { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 18px; align-items: start; }
+.stage-card { padding: 12px; }
+.keys-left { display: grid; gap: 18px; min-width: 0; }
+/* The image is about 1.6:1, so limiting the width by the window height keeps it and the light panel visible. */
+.stage { position: relative; width: min(100%, calc((100vh - 305px) * 1.6)); margin: 0 auto; }
+
+/* Empfänger-Licht */
+.light { display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 220px); gap: 22px; align-items: center; padding: 14px 18px; }
+.receiver { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.receiver img { display: block; width: 104px; height: auto; }
+.receiver-led { width: 72px; height: 4px; border-radius: 2px; transition: background .15s, opacity .15s, box-shadow .15s; }
+.receiver h2 { margin: 0; font-size: 14px; color: var(--ink-strong); text-align: center; }
+.light-controls { display: grid; gap: 8px; min-width: 0; }
+.light-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.light-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+fieldset:disabled { opacity: .35; }
+.hue {
+  display: block;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  appearance: none;
+  background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+.hue::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 1.5px var(--ink-strong);
+}
+.rgb { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.rgb input { width: 50px; padding: 3px 4px; border: 1px solid var(--ink-line); border-radius: 6px; background: var(--paper); color: var(--text); font-weight: 400; text-align: right; }
+.presets { display: flex; gap: 6px; }
+.preset { width: 20px; height: 20px; padding: 0; border: 1px solid var(--ink-line); border-radius: 50%; }
+.light-sliders { display: grid; gap: 12px; min-width: 0; }
+.light-slider div { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 13px; font-weight: 600; color: var(--ink-strong); }
+.stage img { display: block; width: 100%; height: auto; user-select: none; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.leader { stroke: var(--ink); stroke-width: 1.5; fill: none; vector-effect: non-scaling-stroke; opacity: .55; }
+.leader.on { opacity: 1; stroke-width: 2.5; }
+.hotspot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--ink);
+  box-shadow: 0 0 0 1.5px var(--ink);
+  transition: transform .12s;
+}
+.hotspot:hover, .hotspot.on { transform: scale(1.3); }
+.hotspot.on { background: #fff; border-color: var(--ink); }
+.tag {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  padding: 4px 10px;
+  text-align: left;
+  white-space: nowrap;
+  transition: background .12s;
+}
+.tag small { display: block; font-size: 11px; color: var(--muted); }
+.tag b { display: block; font-size: 13px; color: var(--ink-strong); }
+.tag:hover { background: var(--ink-soft); }
+.tag.on { background: var(--ink); }
+.tag.on small, .tag.on b { color: #fff; }
+
+.picker { display: flex; flex-direction: column; max-height: calc(100vh - 100px); min-height: 0; }
+.picker-head { background: var(--ink); padding: 14px 16px 16px; color: #fff; border-radius: 11px 11px 0 0; }
+.picker-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; opacity: .85; }
+.dropdown { position: relative; flex: 1; min-width: 0; }
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 10px;
+  border: 1px solid var(--ink-line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink-strong);
+  font-weight: 600;
+  text-align: left;
+}
+.dropdown-toggle:hover { border-color: var(--ink); }
+.dropdown-toggle svg { flex: none; width: 12px; height: 12px; color: var(--ink); transition: transform .12s; }
+.dropdown.open .dropdown-toggle svg { transform: rotate(180deg); }
+.dropdown.open .dropdown-toggle { border-color: var(--ink); }
+.dropdown-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(23, 28, 116, .22);
+}
+.dropdown.up .dropdown-menu { top: auto; bottom: calc(100% + 4px); }
+.dropdown-menu li {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+}
+.dropdown-menu li.active { background: var(--ink-soft); color: var(--ink-strong); }
+.dropdown-menu li[aria-selected="true"] { background: var(--ink); color: #fff; font-weight: 600; }
+.dropdown.large .dropdown-toggle { padding: 7px 12px; border-color: #fff; font-size: 18px; font-weight: 700; }
+.dropdown.large .dropdown-menu li { font-size: 15px; }
+.picker-head p { margin: 8px 0 0; font-size: 13px; }
+.picker-head p b { font-weight: 700; }
+.cascader { display: grid; grid-template-columns: 180px minmax(0, 1fr); flex: 1; min-height: 0; }
+.column { overflow-y: auto; padding: 8px; min-height: 0; }
+.column + .column { border-left: 1px solid var(--ink-line); }
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  text-align: left;
+}
+.option:hover { background: var(--ink-soft); }
+.option.open { background: var(--ink-soft); color: var(--ink-strong); font-weight: 600; }
+.option[aria-pressed="true"] { background: var(--ink); color: #fff; font-weight: 600; }
+.option .chevron { color: var(--muted); }
+.option[aria-pressed="true"] .chevron { color: #fff; }
+.column-hint { margin: 0; padding: 7px 9px; color: var(--muted); font-size: 13px; }
+.field { display: block; padding: 7px 9px; font-size: 13px; font-weight: 600; color: var(--ink-strong); }
+.field span { display: block; margin-bottom: 4px; }
+.field input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--ink-line);
+  border-radius: 6px;
+  background: var(--paper);
+  font-weight: 400;
+}
+
+/* Leistung */
+.perf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; max-width: 1500px; align-items: start; }
+.perf-col { display: grid; gap: 18px; min-width: 0; }
+.section { padding: 16px 20px; }
+.section-text { margin: -4px 0 10px; color: var(--muted); font-size: 13px; }
+.time-label { margin-bottom: 5px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.switches { display: grid; gap: 2px; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 7px 0; }
+.switch-row + .switch-row { border-top: 1px solid var(--ink-soft); }
+.switch-row b { display: block; color: var(--ink-strong); }
+.switch-row small { display: block; color: var(--muted); font-size: 12px; }
+.switch {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink-line);
+  transition: background .12s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 28, 116, .35);
+  transition: transform .12s;
+}
+.switch[aria-checked="true"] { background: var(--ink); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+@media (max-width: 1200px) {
+  .perf { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+}
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.section h2 { margin: 0; font-size: 16px; color: var(--ink-strong); }
+.hint { color: var(--muted); font-size: 13px; }
+.hint b { color: var(--ink-strong); font-variant-numeric: tabular-nums; }
+
+.stage-row {
+  display: grid;
+  grid-template-columns: 26px 52px minmax(0, 1fr) 92px 30px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.stage-row.active { background: var(--ink-soft); }
+.stage-row .name { font-weight: 600; color: var(--muted); white-space: nowrap; }
+.stage-row.active .name { color: var(--ink-strong); }
+.radio {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+.radio[aria-checked="true"] { background: var(--ink); box-shadow: inset 0 0 0 3px var(--paper); }
+.number { display: flex; align-items: center; gap: 4px; }
+.number input {
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid var(--ink-line);
+  border-radius: 6px;
+  background: var(--paper);
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.remove { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 16px; }
+.remove:hover:not(:disabled) { background: #fbe9ec; color: var(--danger); }
+.remove:disabled { opacity: .25; cursor: default; }
+.add {
+  margin-top: 8px;
+  padding: 7px 12px;
+  border: 1px dashed var(--ink);
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font-weight: 600;
+}
+.add:hover:not(:disabled) { background: var(--ink-soft); }
+.add:disabled { border-color: var(--ink-line); color: var(--muted); cursor: default; }
+input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.segments { display: flex; flex-wrap: wrap; gap: 4px; background: var(--page); padding: 4px; border-radius: 9px; }
+.segments button {
+  flex: 1;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 6px 8px;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--muted);
+}
+.segments button:hover { color: var(--ink-strong); }
+.segments button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.value { font-weight: 700; color: var(--ink-strong); font-variant-numeric: tabular-nums; }
+.placeholder { padding: 48px 20px; text-align: center; color: var(--muted); }
+
+/* Makros */
+.macros { display: grid; grid-template-columns: minmax(190px, 240px) minmax(0, 1fr) 300px; gap: 18px; height: calc(100vh - 110px); min-height: 480px; }
+.macro-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+.macro-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 14px; }
+.macro-panel h2 { margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--ink-line); font-size: 15px; color: var(--ink-strong); }
+.macro-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 8px; }
+.macro-empty { padding: 10px 6px; color: var(--muted); font-size: 13px; }
+.macro-row { display: flex; align-items: center; gap: 4px; border-radius: 6px; }
+.macro-row:hover { background: var(--ink-soft); }
+.macro-row.on { background: var(--ink); color: #fff; }
+.macro-row > button:first-child { flex: 1; min-width: 0; padding: 7px 9px; border: 0; background: none; color: inherit; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.macro-rename { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 5px; background: none; color: inherit; opacity: .7; }
+.macro-rename:hover { opacity: 1; }
+.name-input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--ink); border-radius: 6px; background: var(--paper); color: var(--text); }
+.macro-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.macro-button { padding: 9px 10px; border: 1px solid var(--ink-line); border-radius: 8px; background: var(--paper); color: var(--ink-strong); font-weight: 600; }
+.macro-button:hover:not(:disabled) { border-color: var(--ink); background: var(--ink-soft); }
+.macro-button:disabled { opacity: .4; cursor: default; }
+.macro-button.primary:not(:disabled) { background: var(--ink); border-color: var(--ink); color: #fff; }
+.macro-button.primary:hover:not(:disabled) { background: var(--ink-strong); }
+.macro-button.danger:not(:disabled) { background: var(--danger); border-color: var(--danger); color: #fff; }
+.event-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.event-table th { position: sticky; top: 0; z-index: 1; padding: 4px 8px; background: var(--paper); color: var(--muted); font-size: 12px; text-align: left; }
+.event-table td { padding: 4px 8px; }
+.event-table tbody tr { cursor: pointer; }
+.event-table tbody tr:hover { background: var(--ink-soft); }
+.event-table tbody tr.on { background: var(--ink); color: #fff; }
+.event-table td:first-child { width: 36px; opacity: .65; }
+.event-table td:last-child, .event-table th:last-child { width: 96px; text-align: right; }
+.event-table input { width: 76px; padding: 2px 5px; border: 1px solid var(--ink-line); border-radius: 5px; background: var(--paper); color: var(--text); text-align: right; }
+.macro-notice { margin: 8px 0 0; padding: 7px 10px; border-radius: 7px; background: var(--ink-soft); color: var(--ink-strong); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.macro-notice button { flex: none; padding: 2px 8px; border: 1px solid var(--ink); border-radius: 5px; background: var(--paper); }
+.record {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink-strong);
+  font-size: 15px;
+  font-weight: 700;
+}
+.record:hover:not(:disabled) { background: var(--ink-soft); }
+.record:disabled { opacity: .45; cursor: default; }
+.record-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--danger); }
+.record.on { background: var(--danger); border-color: var(--danger); color: #fff; }
+.record.on:hover { background: var(--danger); }
+.record.on .record-dot { border-radius: 3px; background: #fff; box-shadow: none; animation: record-pulse 1.1s infinite; }
+@keyframes record-pulse { 50% { opacity: .35; } }
+.macro-options { display: grid; gap: 7px; flex: 1; min-height: 0; overflow-y: auto; align-content: start; padding: 12px; }
+.macro-option-title { margin: 6px 2px 0; font-size: 12px; font-weight: 700; color: var(--muted); }
+.macro-option-title:first-child { margin-top: 0; }
+.macro-option { display: flex; align-items: center; gap: 9px; min-height: 36px; padding: 4px 10px; border: 1px solid var(--ink-line); border-radius: 8px; background: var(--page); cursor: pointer; }
+.macro-option input[type="radio"] { flex: none; margin: 0; accent-color: var(--ink); }
+.macro-option span { flex: 1; font-weight: 600; font-size: 13px; }
+.macro-option input[type="number"] { flex: none; width: 70px; padding: 3px 6px; border: 1px solid var(--ink-line); border-radius: 6px; background: var(--paper); text-align: right; }
+#macro-insert { flex: none; margin-top: 6px; }
+#macro-insert li:first-child { display: none; }
+@media (max-width: 1100px) {
+  .macros { grid-template-columns: 1fr; height: auto; }
+  .macro-panel { min-height: 220px; }
+}
+
+@media (max-width: 1500px) {
+  .light { grid-template-columns: 110px minmax(0, 1fr); gap: 12px 18px; }
+  .light-sliders { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .stage { width: min(100%, calc((100vh - 360px) * 1.6)); }
+}
+@media (max-width: 1100px) {
+  .keys { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .two, .light { grid-template-columns: 1fr; }
+  .stage { width: 100%; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  .top { flex-wrap: wrap; }
+  .nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--ink-line); padding: 10px; }
+  .nav-tools { flex-direction: row; flex-wrap: wrap; width: 100%; margin-top: 0; }
+  .nav-tools-title, .nav-tools-status { width: 100%; min-height: 0; }
+  .stage-row { grid-template-columns: 26px minmax(0, 1fr) 84px 30px; }
+  .stage-row .name { display: none; }
+}
+
+/* Skizzenbuch: ballpoint ink on paper, matching the two drawings. */
+/* Kalam sits high in its line by default. The overrides centre it everywhere: buttons, fields and lists. */
+@font-face { font-family: "Kalam"; font-weight: 400; src: url("fonts/kalam-latin-400-normal.woff2") format("woff2"); ascent-override: 97%; descent-override: 23%; line-gap-override: 0%; }
+@font-face { font-family: "Kalam"; font-weight: 700; src: url("fonts/kalam-latin-700-normal.woff2") format("woff2"); ascent-override: 97%; descent-override: 23%; line-gap-override: 0%; }
+@font-face { font-family: "Caveat"; font-weight: 700; src: url("fonts/caveat-latin-700-normal.woff2") format("woff2"); }
+:root {
+  --ink: #1f2aa8;
+  --ink-strong: #1f2aa8;
+  --ink-soft: rgba(31, 42, 168, .1);
+  --ink-line: rgba(31, 42, 168, .45);
+  --paper: #eef1f6;
+  --page: #e9edf3;
+  --text: #1f2aa8;
+  --muted: rgba(31, 42, 168, .72);
+  --danger: #c2263a;
+  --hatch: repeating-linear-gradient(-58deg, rgba(31, 42, 168, .22) 0 1.5px, transparent 1.5px 6px);
+  --hand-corners: 12px 7px 14px 6px / 7px 13px 6px 12px;
+}
+body { font: 400 16px/1.25 "Kalam", "Segoe Print", cursive; }
+h1, h2, .brand, .nav-tools-title { font-family: "Caveat", "Segoe Print", cursive; font-weight: 700; }
+.brand { flex: none; font-size: 34px; line-height: 1; letter-spacing: 0; padding: 0; white-space: nowrap; }
+.brand::after { content: "–"; margin-left: 18px; }
+.top h1 { font-size: 40px; line-height: 1; white-space: nowrap; }
+.status { white-space: nowrap; }
+.section h2, .macro-panel h2 { font-size: 28px; line-height: 1; }
+.receiver h2 { font-size: 22px; line-height: 1; }
+.nav-tools-title { font-size: 22px; line-height: 1; }
+.status, .option.open, .stage-row .name, .macro-option span, .light-label, .rgb { font-weight: 400; }
+.nav { background: none; border-right: 1.5px solid var(--ink-line); }
+.nav button { color: var(--ink); font-weight: 400; font-size: 18px; padding: 6px 10px; }
+.nav .nav-tools button { font-weight: 400; font-size: 15px; padding: 3px 10px; }
+.nav .nav-tools button:disabled { opacity: .45; cursor: default; }
+.nav .nav-tools button.danger { background: none; color: var(--danger); font-weight: 700; }
+.nav-tools { border-top: 1.5px dashed var(--ink-line); }
+
+/* Small outlines get uneven corners; the cards get a real drawn line from drawCardOutlines. */
+.card, .dropdown-toggle, .nav button[aria-current="page"], .option[aria-pressed="true"], .segments button[aria-pressed="true"], .macro-button, .profile-rename { position: relative; border-color: transparent; }
+.dropdown-toggle::before, .nav button[aria-current="page"]::before, .option[aria-pressed="true"]::before, .segments button[aria-pressed="true"]::before, .macro-button::before, .profile-rename::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.6px solid var(--ink);
+  border-radius: var(--hand-corners);
+  pointer-events: none;
+}
+.card-outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.card-outline path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.card, .dropdown-toggle, .macro-button, .profile-rename, .segments { background: none; }
+.card.stage-card { padding: 0; }
+.dropdown-toggle { font-weight: 400; border-width: 0; padding: 6px 10px; }
+.dropdown-menu { border: 1.5px solid var(--ink); border-radius: var(--hand-corners); box-shadow: none; }
+
+/* Selected things are hatched instead of filled. */
+.nav button[aria-current="page"], .option[aria-pressed="true"], .segments button[aria-pressed="true"], .dropdown-menu li[aria-selected="true"], .macro-row.on, .event-table tbody tr.on {
+  background: var(--hatch);
+  color: var(--ink);
+  font-weight: 700;
+}
+.nav button:hover { background: none; text-decoration: underline; }
+.nav button[aria-current="page"]:hover { background: var(--hatch); text-decoration: none; }
+.option[aria-pressed="true"] .chevron { color: var(--ink); }
+.segments { padding: 0; gap: 6px; }
+.segments button { color: var(--ink); font-weight: 400; padding-left: 3px; padding-right: 3px; }
+/* All rates stay in one row: the text shrinks with the card instead of wrapping. */
+#polling { flex-wrap: nowrap; gap: 2px; container-type: inline-size; }
+#polling button { flex: 1 1 0; min-width: 0; padding-left: 0; padding-right: 0; white-space: nowrap; font-size: clamp(10px, 3.3cqw, 14px); }
+.column + .column { border-left: 1.5px dashed var(--ink-line); }
+.option { color: var(--ink); }
+.option.open { background: var(--ink-soft); }
+
+.picker-head { background: none; color: var(--ink); padding: 14px 16px 6px; }
+.picker-label { font-size: 15px; font-weight: 400; opacity: 1; color: var(--muted); }
+.dropdown.large .dropdown-toggle { font: 700 30px/1 "Caveat", "Segoe Print", cursive; }
+.picker-head p { font-size: 15px; color: var(--muted); }
+.picker-head p b { color: var(--ink); }
+
+/* Tasten */
+.stage img {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 9%, #000 89%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 9%, #000 89%, transparent);
+  mask-composite: intersect;
+}
+.stage svg { overflow: visible; }
+.leader { stroke-width: 2; stroke-linecap: round; }
+.leader.on { stroke-width: 3; }
+.leader-ring { fill: none; stroke: var(--danger); stroke-width: 3.2; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.hotspot, .hotspot.on { width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 0; background: none; box-shadow: none; }
+.hotspot:hover, .hotspot.on { transform: none; }
+.tag, .tag:hover, .tag.on { background: none; border: 0; padding: 2px 8px; }
+.tag small, .tag.on small { font-size: 13px; color: var(--muted); }
+.tag b, .tag.on b { font-size: 17px; color: var(--ink); }
+.tag:hover b { text-decoration: underline; }
+.tag.on b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--danger); }
+
+/* Empfänger-Licht */
+.receiver img {
+  mix-blend-mode: multiply;
+  -webkit-mask-image: radial-gradient(closest-side, #000 86%, transparent);
+  mask-image: radial-gradient(closest-side, #000 86%, transparent);
+}
+/* The light panel spans both columns, so it uses the room below the key list. */
+.keys-left { display: contents; }
+/* In the narrow layout the key list stays right below the mouse, the light comes last. */
+.light { order: 1; }
+@media (min-width: 1101px) {
+  .stage-card { grid-column: 1; grid-row: 1; }
+  .picker { grid-column: 2; grid-row: 1; }
+  .light { grid-column: 1 / -1; }
+  .stage { width: min(100%, calc((100vh - 310px) * 1.6)); }
+}
+.light-settings { display: grid; gap: 10px; min-width: 0; }
+.light-color { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+/* The three blocks stay side by side down to the narrow layout, only the colour field shrinks. */
+@media (min-width: 861px) {
+  .light { grid-template-columns: 110px minmax(0, 300px) minmax(0, 1fr); gap: 24px; }
+  .light-sliders { grid-column: auto; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .light-color { flex-wrap: nowrap; gap: 10px 18px; }
+}
+.light-rgb { display: grid; gap: 6px; }
+.light-rgb .rgb { justify-content: flex-end; gap: 6px; }
+.receiver-led { height: 10px; border-radius: 5px; }
+.presets { display: grid; grid-template-columns: repeat(2, 20px); gap: 3px 6px; }
+.light-sv { position: relative; flex: 1 1 200px; max-width: 320px; height: 112px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); cursor: crosshair; touch-action: none; }
+.light-sv-knob { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid var(--ink); border-radius: 8px 6px 9px 5px / 6px 9px 5px 8px; box-shadow: 0 0 0 1.5px #fff; pointer-events: none; }
+fieldset:disabled .light-sv { pointer-events: none; }
+.light-label, .rgb { font-size: 15px; }
+.light-slider div { font-size: 15px; font-weight: 400; }
+/* Stands upright right next to the colour field, red at the top. */
+input[type="range"].hue {
+  writing-mode: vertical-lr;
+  flex: none;
+  width: 14px;
+  height: 112px;
+  margin-left: -14px;
+  border: 1.5px solid var(--ink);
+  opacity: .9;
+  background: linear-gradient(180deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+.hue::-webkit-slider-thumb { border: 2px solid var(--ink); background: var(--page); box-shadow: none; }
+/* Side by side, the settings and the colours end on the same top and bottom line. */
+@media (min-width: 861px) {
+  .light-settings, .light-color { align-self: stretch; }
+  .light-settings { align-content: space-between; }
+  .light-sv, input[type="range"].hue, .presets { align-self: stretch; height: auto; }
+  .presets { align-content: space-between; }
+}
+.preset { border: 0; border-radius: 0; background: none; }
+.preset svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.preset path { stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round; }
+.preset:hover path { stroke-width: 2.2; }
+
+/* Eingaben */
+.rgb input, .number input, .event-table input, .macro-option input[type="number"], .field input, .name-input, .profile-name {
+  padding: 3px 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--hand-corners);
+  background: none;
+  color: var(--ink);
+  font-weight: 700;
+}
+.name-input, .profile-name, .field input { padding-left: 10px; font-weight: 400; }
+/* The native arrows do not fit the drawing and take the room of the third digit. */
+input[type="number"] { appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.rgb input { text-align: center; }
+
+/* Regler: a drawn line with a small circle. */
+input[type="range"]:not(.hue) { appearance: none; height: 20px; background: none; cursor: pointer; }
+input[type="range"]:not(.hue)::-webkit-slider-runnable-track { height: 2px; background: var(--ink); border-radius: 1px; }
+input[type="range"]:not(.hue)::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border: 2px solid var(--ink);
+  border-radius: 9px 7px 10px 6px / 7px 10px 6px 9px;
+  background: var(--page);
+}
+
+/* Schalter: a box that gets a hand-drawn tick. */
+.switch { width: 26px; height: 26px; border: 1.6px solid var(--ink); border-radius: var(--hand-corners); background: none; }
+.switch::after {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 13 L10 19 L20 5' fill='none' stroke='%231f2aa8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: none;
+}
+.switch[aria-checked="true"] { background: none; }
+.switch[aria-checked="true"]::after { transform: none; opacity: 1; }
+.switch-row + .switch-row { border-top: 1.5px dashed var(--ink-soft); }
+.switch-row small, .section-text, .hint, .macro-empty, .column-hint { font-size: 14px; }
+.radio { border-width: 1.6px; background: none; }
+.radio[aria-checked="true"] { background: var(--ink); box-shadow: inset 0 0 0 3px var(--page); }
+.add { border-width: 1.5px; border-radius: var(--hand-corners); font-weight: 400; }
+
+/* Einstellungen: they belong to the app, so they also work without a mouse. */
+.no-data #page-settings { opacity: 1; pointer-events: auto; }
+#page-settings { display: grid; gap: 18px; justify-items: start; }
+.tray-settings { width: 100%; max-width: 520px; display: grid; gap: 10px; }
+.tray-settings .section-head { margin-bottom: 2px; }
+.tray-head { display: grid; gap: 4px; margin-bottom: 4px; }
+.tray-settings .section-text { margin: 0; min-height: 18px; color: var(--danger); }
+.tray-row { display: flex; align-items: center; gap: 14px; }
+.tray-color { width: 34px; height: 28px; padding: 0; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background: none; cursor: pointer; overflow: hidden; }
+.tray-color::-webkit-color-swatch-wrapper { padding: 0; }
+.tray-color::-webkit-color-swatch { border: 0; }
+.tray-level { min-width: 120px; }
+.tray-level input { width: 56px; padding: 3px 6px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background: none; color: var(--ink); font-weight: 700; text-align: center; }
+.tray-preview { padding: 2px 8px; border-radius: 5px; color: #fff; font: 700 13px "Segoe UI", sans-serif; }
+
+/* Bildlaufleisten: a pen stroke on the paper. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: none; }
+::-webkit-scrollbar-thumb { border: 2.5px solid transparent; border-radius: 7px 4px 8px 4px / 4px 8px 4px 7px; background: var(--ink-line) padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink) padding-box; }
+
+/* Makros */
+.macro-panel h2 { border-bottom: 1.5px dashed var(--ink-line); }
+.macro-row { color: var(--ink); }
+.macro-button { font-weight: 400; color: var(--ink); }
+.macro-button:hover:not(:disabled) { background: var(--ink-soft); border-color: transparent; }
+.macro-button.primary:not(:disabled), .macro-button.primary:hover:not(:disabled) { background: var(--hatch); border-color: transparent; color: var(--ink); font-weight: 700; }
+.macro-button.danger:not(:disabled) { background: none; border-color: transparent; color: var(--danger); font-weight: 700; }
+.macro-button.danger:not(:disabled)::before { border-color: var(--danger); }
+.macro-notice { background: var(--ink-soft); font-weight: 400; font-size: 14px; }
+.macro-notice button { background: none; }
+.event-table th { background: var(--page); font-size: 14px; font-weight: 400; }
+.macro-option { background: none; border: 1.5px solid var(--ink-line); border-radius: var(--hand-corners); }
+.macro-option span { font-size: 15px; }
+.macro-option-title, .time-label { font-size: 15px; font-weight: 400; }
+.record { background: none; border: 1.6px solid var(--ink); border-radius: var(--hand-corners); font: 700 24px/1 "Caveat", "Segoe Print", cursive; }
+.record-dot { box-shadow: 0 0 0 3px var(--page), 0 0 0 5px var(--danger); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">H-Mouse Config</div>
+    <h1 id="title">Tasten</h1>
+    <span class="profile-box"><button type="button" class="profile-rename language-flag" id="language-flag" title="Sprache wechseln" aria-label="Sprache wechseln"></button><span class="light-label" id="profile-label">Profil</span><div class="dropdown" id="profile-select"></div><input class="profile-name" id="profile-name" maxlength="24" placeholder="Eigener Name" aria-label="Name des Profils" hidden><button type="button" class="profile-rename" id="profile-rename" title="Profil umbenennen" aria-label="Profil umbenennen">✎</button></span>
+    <span class="status"><span class="dot" id="status-dot"></span><span id="status-text">Verbunden</span></span>
+    <span class="status" id="status-battery">Akku 82 %</span>
+    <span class="status" id="top-dpi"></span>
+    <svg class="top-line" viewBox="0 0 1000 6" preserveAspectRatio="none" aria-hidden="true"><path d="M0 3Q160 1.4 330 3.2T660 2.8T1000 3.4"/></svg>
+  </header>
+
+  <nav class="nav" aria-label="Bereiche">
+    <button data-page="keys" aria-current="page">Tasten</button>
+    <button data-page="macros">Makros</button>
+    <button data-page="perf">Sensor</button>
+    <button data-page="settings">Einstellungen</button>
+    <div class="nav-tools" id="config-tools">
+      <div class="nav-tools-title">Konfiguration</div>
+      <button id="config-export">Exportieren</button>
+      <button id="config-import">Importieren</button>
+      <input type="file" id="config-file" accept=".bin" hidden>
+      <p class="nav-tools-status" id="config-status" role="status"></p>
+    </div>
+  </nav>
+
+  <main class="main">
+    <section class="page" id="page-keys">
+      <div class="keys">
+        <div class="keys-left">
+          <div class="card stage-card">
+            <div class="stage" id="stage">
+              <img src="mouse.png" alt="Skizze der Maus" width="1172" height="729" draggable="false">
+              <svg viewBox="0 0 100 62.2" preserveAspectRatio="none" aria-hidden="true" id="leaders"></svg>
+            </div>
+          </div>
+          <div class="card light">
+            <div class="receiver">
+              <img src="receiver.png" alt="Empfänger" draggable="false">
+              <div class="receiver-led" id="receiver-led"></div>
+              <h2>Empfänger-Licht</h2>
+            </div>
+            <div class="light-settings">
+              <div class="light-row">
+                <span class="light-label" id="light-mode-label">Lichteffekt</span>
+                <div class="dropdown" id="light-mode"></div>
+              </div>
+              <div class="light-sliders">
+                <fieldset id="light-brightness-box" class="light-slider">
+                  <div><span>Helligkeit</span><span id="light-brightness-value"></span></div>
+                  <input type="range" id="light-brightness" min="1" max="10" aria-label="Helligkeit">
+                </fieldset>
+                <fieldset id="light-speed-box" class="light-slider">
+                  <div><span>Geschwindigkeit</span><span id="light-speed-value"></span></div>
+                  <input type="range" id="light-speed" min="1" max="10" aria-label="Geschwindigkeit">
+                </fieldset>
+              </div>
+            </div>
+            <fieldset id="light-color" class="light-color">
+              <div class="light-sv" id="light-sv" role="slider" tabindex="0" aria-label="Sättigung und Helligkeit der Farbe"><span class="light-sv-knob" id="light-sv-knob"></span></div>
+              <input type="range" class="hue" id="light-hue" min="0" max="360" aria-label="Farbton">
+              <div class="light-rgb">
+                <label class="rgb">R <input type="number" id="light-r" min="0" max="255"></label>
+                <label class="rgb">G <input type="number" id="light-g" min="0" max="255"></label>
+                <label class="rgb">B <input type="number" id="light-b" min="0" max="255"></label>
+              </div>
+              <div class="presets" id="light-presets"></div>
+            </fieldset>
+          </div>
+        </div>
+        <aside class="card picker">
+          <div class="picker-head">
+            <span class="picker-label" id="key-select-label">Du bearbeitest</span>
+            <div class="dropdown large" id="key-select"></div>
+            <p>Aktuell: <b id="key-current"></b></p>
+          </div>
+          <div class="cascader">
+            <div class="column" id="categories"></div>
+            <div class="column" id="details"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="page-macros" hidden>
+      <div class="macros">
+        <div class="macro-col">
+          <div class="card macro-panel">
+            <h2>Makroliste</h2>
+            <div class="macro-scroll" id="macro-list"></div>
+          </div>
+          <div class="macro-actions">
+            <button class="macro-button" id="macro-new">Neues Makro</button>
+            <button class="macro-button" id="macro-delete">Löschen</button>
+          </div>
+        </div>
+        <div class="macro-col">
+          <div class="card macro-panel">
+            <h2 id="macro-events-title">Tastenfolge</h2>
+            <div class="macro-scroll" id="macro-events"></div>
+            <div class="macro-notice" id="macro-notice" hidden></div>
+          </div>
+          <div class="macro-actions">
+            <button class="macro-button" id="event-modify">Taste ändern</button>
+            <button class="macro-button" id="event-delete">Löschen</button>
+          </div>
+        </div>
+        <div class="macro-col">
+          <button class="record" id="macro-record"><span class="record-dot"></span><span id="macro-record-label"></span></button>
+          <div class="card macro-options">
+            <div class="macro-option-title">Verzögerung</div>
+            <label class="macro-option"><input type="radio" name="delay-mode" value="auto" checked><span>Automatisch aufzeichnen</span></label>
+            <label class="macro-option"><input type="radio" name="delay-mode" value="fixed"><span>Fester Wert (ms)</span><input type="number" id="macro-delay" min="10" max="65535" value="10" aria-label="Feste Verzögerung in Millisekunden"></label>
+            <div class="macro-option-title">Wiederholen</div>
+            <label class="macro-option"><input type="radio" name="cycle-mode" value="254"><span>Bis diese Taste losgelassen wird</span></label>
+            <label class="macro-option"><input type="radio" name="cycle-mode" value="255"><span>Bis eine andere Taste gedrückt wird</span></label>
+            <label class="macro-option"><input type="radio" name="cycle-mode" value="1"><span>Anzahl</span><input type="number" id="macro-cycles" min="1" max="250" value="1" aria-label="Anzahl der Wiederholungen"></label>
+            <div class="dropdown" id="macro-insert"></div>
+          </div>
+          <div class="macro-actions">
+            <button class="macro-button" id="macro-discard">Verwerfen</button>
+            <button class="macro-button primary" id="macro-save">Speichern</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-settings" hidden>
+      <div class="card section tray-settings">
+        <div class="section-head"><h2>Sprache</h2></div>
+        <div class="segments" id="language"></div>
+      </div>
+      <div class="card section tray-settings">
+        <div class="section-head"><h2>Version</h2><span class="hint" id="app-version">H-Mouse Config</span></div>
+      </div>
+      <div class="card section tray-settings">
+        <div class="section-head"><h2>Start</h2></div>
+        <div class="switch-row">
+          <div><b id="autostart-label">Mit Windows starten</b><small>H-Mouse Config startet unsichtbar im Tray.</small></div>
+          <button class="switch" id="autostart-switch" role="switch" aria-labelledby="autostart-label" aria-checked="false"></button>
+        </div>
+      </div>
+      <div class="card section tray-settings">
+        <div class="tray-head"><h2>Tray-Symbol</h2><span class="hint">Hintergrundfarbe nach Akkustand</span></div>
+        <div class="tray-row">
+          <input type="color" class="tray-color" id="tray-low-color" aria-label="Farbe bei niedrigem Akku">
+          <label class="tray-level">unter <input type="number" id="tray-low" min="1" max="99"> %</label>
+          <span class="tray-preview" id="tray-low-preview">6,4k</span>
+        </div>
+        <div class="tray-row">
+          <input type="color" class="tray-color" id="tray-mid-color" aria-label="Farbe bei mittlerem Akku">
+          <label class="tray-level">unter <input type="number" id="tray-mid" min="2" max="100"> %</label>
+          <span class="tray-preview" id="tray-mid-preview">6,4k</span>
+        </div>
+        <div class="tray-row">
+          <input type="color" class="tray-color" id="tray-high-color" aria-label="Farbe bei vollem Akku">
+          <span class="tray-level">darüber</span>
+          <span class="tray-preview" id="tray-high-preview">6,4k</span>
+        </div>
+        <p class="section-text" id="tray-status" role="status"></p>
+      </div>
+    </section>
+
+    <section class="page" id="page-perf" hidden>
+      <div class="perf">
+        <div class="perf-col">
+        <div class="card section">
+          <div class="section-head">
+            <h2>DPI-Stufen</h2>
+            <span class="hint">Aktiv: <b id="active-dpi"></b></span>
+          </div>
+          <div id="stages"></div>
+          <button class="add" id="add-stage"></button>
+        </div>
+        <div class="card section">
+          <div class="section-head"><h2>Polling Rate</h2><span class="hint">Meldungen pro Sekunde</span></div>
+          <div class="segments" id="polling"></div>
+        </div>
+        <div class="two">
+          <div class="card section">
+            <div class="section-head"><h2>Debounce</h2><span class="value" id="debounce-value"></span></div>
+            <input type="range" id="debounce" min="0" max="15" step="1" aria-label="Debounce in Millisekunden">
+          </div>
+          <div class="card section">
+            <div class="section-head"><h2>Lift-Off Distance</h2></div>
+            <div class="segments" id="lod"></div>
+          </div>
+        </div>
+        </div>
+        <div class="perf-col">
+          <div class="card section">
+            <div class="section-head"><h2>Sensor-Funktionen</h2></div>
+            <div class="switches" id="sensor-switches"></div>
+          </div>
+          <div class="card section">
+            <div class="section-head">
+              <h2 id="performance-title">Höchste Leistung</h2>
+              <button class="switch" id="performance-switch" role="switch" aria-labelledby="performance-title"></button>
+            </div>
+            <p class="section-text">Der Sensor arbeitet im stärksten Modus, seine LED leuchtet hell.</p>
+            <fieldset id="performance-time-box">
+              <div class="time-label">Aktiv bis zum Sparmodus nach</div>
+              <div class="segments" id="performance-time"></div>
+            </fieldset>
+          </div>
+          <div class="card section">
+            <div class="section-head"><h2>Ruhemodus</h2><span class="hint">Maus schläft nach</span></div>
+            <div class="segments" id="sleep-time"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="i18n.js"></script>
+<script>
+// Design mock: every value below is sample data, nothing talks to the mouse.
+const CATEGORIES = [
+  { id: "buttons", label: "Maustasten", items: ["Linksklick", "Rechtsklick", "Mausrad-Klick", "Vorwärts", "Zurück"] },
+  { id: "polling", label: "Polling-Wechsel" },
+  { id: "fire", label: "Dauerfeuer", form: "fire" },
+  { id: "combo", label: "Tastenkombination", form: "combo" },
+  { id: "disable", label: "Deaktiviert" },
+  { id: "scroll", label: "Seitlich scrollen", items: ["Nach links scrollen", "Nach rechts scrollen"] },
+  { id: "dpi", label: "DPI", items: ["DPI-Wechsel", "DPI +", "DPI -"] },
+  { id: "media", label: "Multimedia", items: [
+    "Mediaplayer", "Wiedergabe/Pause", "Nächster Titel", "Vorheriger Titel", "Stopp", "Stumm",
+    "Lauter", "Leiser", "E-Mail", "Rechner", "Arbeitsplatz", "Startseite", "Suche",
+    "Nächste Seite", "Vorherige Seite", "Laden stoppen", "Seite neu laden", "Favoriten"
+  ] },
+  { id: "macro", label: "Makro", form: "macro" }
+];
+
+// Positions are percent of the image, so they stay on the mouse when the window resizes.
+const keys = [
+  { id: "right",   name: "Rechte Taste", category: "buttons", value: "Rechtsklick", spot: [30, 18], tag: [10, 9] },
+  { id: "wheel",   name: "Mausrad",      category: "buttons", value: "Mausrad-Klick", spot: [23.5, 25], tag: [75, 14.5], bend: -.14 },
+  { id: "left",    name: "Linke Taste",  category: "buttons", value: "Linksklick",  spot: [16.5, 42], tag: [9, 68] },
+  { id: "forward", name: "Vordere Seitentaste", category: "buttons", value: "Vorwärts", spot: [32, 61], tag: [20, 89] },
+  { id: "back",    name: "Hintere Seitentaste", category: "buttons", value: "Zurück",   spot: [45, 66], tag: [50, 93] }
+];
+
+let selectedKey = "left";
+let openCategory = "buttons";
+
+const DPI_MIN = 100, DPI_MAX = 40000, DPI_STEP = 50, MAX_STAGES = 5;
+const state = {
+  stages: [800, 1200, 2400],
+  active: 1,
+  polling: 1000,
+  debounce: 6,
+  lod: "1 mm"
+};
+
+const $ = id => document.getElementById(id);
+
+// Set by the app part below; in the browser the page only works with sample values.
+let syncMouse = () => {};
+let syncMouseLater = () => {};
+let persistMacros = () => {};
+let pollingLimit = Infinity;
+
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  Object.assign(node, props);
+  for (const child of children) node.append(child);
+  return node;
+}
+
+/* Dropdown: replaces the native select, whose open list follows the Windows look. */
+function createDropdown(host, labelId, options, onChange) {
+  const toggle = el("button", { type: "button", className: "dropdown-toggle" }, el("span"));
+  toggle.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  toggle.setAttribute("aria-haspopup", "listbox");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-labelledby", labelId + " " + host.id + "-value");
+  toggle.firstChild.id = host.id + "-value";
+
+  const menu = el("ul", { className: "dropdown-menu", hidden: true });
+  menu.setAttribute("role", "listbox");
+  menu.setAttribute("aria-labelledby", labelId);
+
+  let value = options[0].value;
+  let activeIndex = 0;
+
+  const items = options.map((option, index) => {
+    const item = el("li", { id: host.id + "-option-" + index, textContent: option.label });
+    item.setAttribute("role", "option");
+    item.onmouseenter = () => setActive(index);
+    item.onclick = () => choose(index);
+    menu.append(item);
+    return item;
+  });
+
+  function setActive(index) {
+    activeIndex = (index + options.length) % options.length;
+    items.forEach((item, i) => item.classList.toggle("active", i === activeIndex));
+    toggle.setAttribute("aria-activedescendant", items[activeIndex].id);
+  }
+
+  function isOpen() { return !menu.hidden; }
+
+  function open() {
+    menu.hidden = false;
+    host.classList.remove("up");
+    const room = window.innerHeight - toggle.getBoundingClientRect().bottom;
+    if (room < menu.offsetHeight + 8) host.classList.add("up");
+    host.classList.add("open");
+    toggle.setAttribute("aria-expanded", "true");
+    setActive(options.findIndex(o => o.value === value));
+  }
+
+  function close() {
+    menu.hidden = true;
+    host.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.removeAttribute("aria-activedescendant");
+  }
+
+  function choose(index) {
+    close();
+    toggle.focus();
+    if (options[index].value !== value) onChange(options[index].value);
+  }
+
+  toggle.onclick = () => { if (isOpen()) close(); else open(); };
+  toggle.onkeydown = event => {
+    const moves = { ArrowDown: 1, ArrowUp: -1 };
+    if (event.key in moves) {
+      event.preventDefault();
+      if (isOpen()) setActive(activeIndex + moves[event.key]);
+      else open();
+    } else if (event.key === "Home" || event.key === "End") {
+      if (!isOpen()) return;
+      event.preventDefault();
+      setActive(event.key === "Home" ? 0 : options.length - 1);
+    } else if ((event.key === "Enter" || event.key === " ") && isOpen()) {
+      event.preventDefault();
+      choose(activeIndex);
+    } else if (event.key === "Escape" && isOpen()) {
+      event.preventDefault();
+      close();
+    } else if (event.key === "Tab" && isOpen()) {
+      close();
+    }
+  };
+  document.addEventListener("mousedown", event => {
+    if (isOpen() && !host.contains(event.target)) close();
+  });
+
+  host.append(toggle, menu);
+  return {
+    set(next) {
+      value = next;
+      toggle.firstChild.textContent = options.find(o => o.value === value).label;
+      items.forEach((item, i) => item.setAttribute("aria-selected", String(options[i].value === value)));
+    },
+    setLabels(labelFor) {
+      options.forEach((option, i) => {
+        option.label = labelFor(option.value);
+        items[i].textContent = option.label;
+      });
+      toggle.firstChild.textContent = options.find(o => o.value === value).label;
+    }
+  };
+}
+
+/* Sprache: the names of the languages stay in their own language. */
+let saveLanguage = () => {};
+const LANGUAGE_NAMES = { de: "Deutsch", en: "English" };
+const FLAG_OUTLINE = '<path d="M1.5 1.6Q12 .8 22.5 1.4L22.6 14.6Q12 15.4 1.4 14.4Z"/>';
+const LANGUAGE_FLAGS = {
+  de: FLAG_OUTLINE + '<path class="flag-fill" d="M1.5 1.6Q12 .8 22.5 1.4V5.8Q12 5.2 1.5 5.6Z"/><path d="M1.5 10.2Q12 9.8 22.5 10.3M3.5 10.1L5.5 5.6M7.5 10L9.5 5.5M11.5 10L13.5 5.5M15.5 10L17.5 5.5M19.5 10.1L21.5 5.7"/>',
+  en: FLAG_OUTLINE + '<path d="M1.5 1.6L22.5 14.5M22.5 1.4L1.5 14.4"/><path class="flag-cross" d="M12 1.1V15M1.5 8H22.5"/>'
+};
+function chooseLanguage(language) {
+  appLanguage.set(language);
+  renderLanguage();
+  saveLanguage(language);
+}
+function renderLanguage() {
+  const current = appLanguage.get();
+  renderSegments("language", Object.values(LANGUAGE_NAMES), LANGUAGE_NAMES[current], v => v, name => {
+    chooseLanguage(Object.keys(LANGUAGE_NAMES).find(code => LANGUAGE_NAMES[code] === name));
+  });
+  $("language-flag").innerHTML = `<svg viewBox="0 0 24 16" aria-hidden="true">${LANGUAGE_FLAGS[current]}</svg>`;
+}
+$("language-flag").onclick = () => chooseLanguage(appLanguage.get() === "de" ? "en" : "de");
+
+/* Navigation */
+const TITLES = { keys: "Tasten", macros: "Makros", perf: "Sensor", settings: "Einstellungen" };
+document.querySelectorAll(".nav button[data-page]").forEach(button => {
+  button.addEventListener("click", () => {
+    const page = button.dataset.page;
+    document.querySelectorAll(".nav button[data-page]").forEach(b => b.removeAttribute("aria-current"));
+    button.setAttribute("aria-current", "page");
+    document.querySelectorAll(".page").forEach(p => { p.hidden = p.id !== "page-" + page; });
+    $("title").textContent = TITLES[page];
+  });
+});
+
+/* Tasten */
+function renderKeys() {
+  const stage = $("stage");
+  stage.querySelectorAll(".hotspot, .tag").forEach(n => n.remove());
+
+  for (const key of keys) {
+    const on = key.id === selectedKey;
+    const spot = el("button", { className: "hotspot" + (on ? " on" : ""), title: key.name });
+    spot.setAttribute("aria-label", key.name);
+    spot.style.left = key.spot[0] + "%";
+    spot.style.top = key.spot[1] + "%";
+    spot.onclick = () => selectKey(key.id);
+
+    const tag = el("button", { className: "tag" + (on ? " on" : "") },
+      el("b", { textContent: key.name }),
+      el("small", { textContent: key.value }));
+    tag.style.left = key.tag[0] + "%";
+    tag.style.top = key.tag[1] + "%";
+    tag.onclick = () => selectKey(key.id);
+    key.tagElement = tag;
+
+    stage.append(spot, tag);
+  }
+  drawLeaders();
+  renderPicker();
+}
+
+/* The notes have no background, so each line starts at the edge of its note instead of its centre. */
+function drawLeaders() {
+  const unit = $("stage").clientWidth / 100;
+  if (!unit) return;
+  const height = 62.2;
+  let paths = "";
+  for (const key of keys) {
+    const on = key.id === selectedKey;
+    const [sx, sy] = [key.spot[0], key.spot[1] * height / 100];
+    const [cx, cy] = [key.tag[0], key.tag[1] * height / 100];
+    const reach = Math.min(
+      (key.tagElement.offsetWidth / 2 + 4) / unit / Math.abs(sx - cx || 1e-6),
+      (key.tagElement.offsetHeight / 2 + 2) / unit / Math.abs(sy - cy || 1e-6), 1);
+    const [tx, ty] = [cx + (sx - cx) * reach, cy + (sy - cy) * reach];
+    const bend = key.bend ?? .14;
+    const bendX = (sx + tx) / 2 + (sy - ty) * bend;
+    const bendY = (sy + ty) / 2 + (tx - sx) * bend;
+    paths += `<path class="leader${on ? " on" : ""}" d="M${tx} ${ty} Q${bendX} ${bendY} ${sx} ${sy}"/>`;
+    paths += on
+      ? `<path class="leader-ring" d="M${sx - 2.6} ${sy - .3} C${sx - 2.4} ${sy - 2.5} ${sx + 2.3} ${sy - 2.8} ${sx + 2.7} ${sy - .2} C${sx + 3} ${sy + 2.2} ${sx - 2.2} ${sy + 2.8} ${sx - 2.9} ${sy + .1} C${sx - 3} ${sy - 1} ${sx - 1.6} ${sy - 2.1} ${sx - .5} ${sy - 2.4}"/>`
+      : `<circle cx="${sx}" cy="${sy}" r=".55" fill="#1f2aa8"/>`;
+  }
+  $("leaders").innerHTML = paths;
+}
+new ResizeObserver(drawLeaders).observe($("stage"));
+
+/* One unbroken pen line around a card: the corner points are joined by slightly bent curves. */
+function cardOutlinePath(width, height, seed) {
+  const corner = 11;
+  const wobble = (i, size) => Math.sin(seed * 1.7 + i * 2.3) * size;
+  const edge = (x1, y1, x2, y2, start) => {
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    const steps = Math.max(1, Math.round(length / 90));
+    let path = "";
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const mid = (i - .5) / steps;
+      const bend = wobble(start + i, 1.3);
+      const nx = (y2 - y1) / length;
+      const ny = (x1 - x2) / length;
+      const end = i === steps ? 0 : wobble(start + i + .5, .5);
+      path += ` Q${x1 + (x2 - x1) * mid + nx * bend} ${y1 + (y2 - y1) * mid + ny * bend} ${x1 + (x2 - x1) * t + nx * end} ${y1 + (y2 - y1) * t + ny * end}`;
+    }
+    return path;
+  };
+  const [w, h, c] = [width - 1, height - 1, corner];
+  return `M${1 + c} 1` + edge(1 + c, 1, w - c, 1, 0)
+    + ` Q${w} 1 ${w} ${1 + c}` + edge(w, 1 + c, w, h - c, 20)
+    + ` Q${w} ${h} ${w - c} ${h}` + edge(w - c, h, 1 + c, h, 40)
+    + ` Q1 ${h} 1 ${h - c}` + edge(1, h - c, 1, 1 + c, 60)
+    + ` Q1 1 ${1 + c} 1Z`;
+}
+document.querySelectorAll(".card:not(.stage-card)").forEach((card, index) => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "card-outline");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  svg.append(path);
+  card.prepend(svg);
+  new ResizeObserver(() => {
+    if (card.clientWidth) path.setAttribute("d", cardOutlinePath(card.clientWidth, card.clientHeight, index + 1));
+  }).observe(card);
+});
+document.fonts.ready.then(drawLeaders);
+
+const keyDropdown = createDropdown($("key-select"), "key-select-label",
+  keys.map(k => ({ value: k.id, label: k.name })), id => selectKey(id));
+
+function selectKey(id) {
+  selectedKey = id;
+  openCategory = keys.find(k => k.id === id).category;
+  renderKeys();
+}
+
+function isLastLeftClick(key) {
+  const isLeft = k => k.category === "buttons" && k.value === "Linksklick";
+  return isLeft(key) && keys.filter(isLeft).length === 1;
+}
+
+function assign(key, category, value, data) {
+  if (isLastLeftClick(key) && !(category === "buttons" && value === "Linksklick")) {
+    setConfigStatus("Mindestens eine Taste muss Linksklick bleiben.");
+    return;
+  }
+  key.category = category;
+  key.value = value;
+  key.data = data || null;
+  openCategory = category;
+  setConfigStatus("");
+  renderKeys();
+  syncMouse("key", key);
+}
+
+function renderPicker() {
+  const key = keys.find(k => k.id === selectedKey);
+
+  keyDropdown.set(key.id);
+  $("key-current").textContent = key.value;
+
+  const categories = $("categories");
+  categories.replaceChildren();
+  for (const category of CATEGORIES) {
+    const hasMore = Boolean(category.items || category.form);
+    const direct = !hasMore && key.category === category.id;
+    const button = el("button", { className: "option" + (hasMore && openCategory === category.id ? " open" : "") },
+      el("span", { textContent: category.label }));
+    if (hasMore) button.append(el("span", { className: "chevron", textContent: "›" }));
+    button.setAttribute("aria-pressed", String(direct));
+    button.onclick = () => {
+      if (hasMore) { openCategory = category.id; renderPicker(); }
+      else assign(key, category.id, category.label);
+    };
+    categories.append(button);
+  }
+  renderDetails(key);
+}
+
+function renderDetails(key) {
+  const details = $("details");
+  details.replaceChildren();
+  const category = CATEGORIES.find(c => c.id === openCategory);
+  if (!category || !(category.items || category.form)) {
+    details.append(el("p", { className: "column-hint", textContent: "Diese Funktion hat keine weiteren Optionen." }));
+    return;
+  }
+
+  if (category.items) {
+    for (const item of category.items) {
+      const button = el("button", { className: "option", textContent: item });
+      button.setAttribute("aria-pressed", String(key.category === category.id && key.value === item));
+      button.onclick = () => assign(key, category.id, item);
+      details.append(button);
+    }
+  } else if (category.form === "fire") {
+    const current = key.category === "fire" && key.data ? key.data : { times: 2, interval: 10 };
+    const times = numberField("Wiederholungen (0–3)", current.times, 0, 3);
+    const interval = numberField("Intervall (10–255)", current.interval, 10, 255);
+    const clamped = (field, min, max) => {
+      const value = Math.round(Number(field.querySelector("input").value));
+      return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min;
+    };
+    details.append(times, interval,
+      applyButton(key, category, () => "Dauerfeuer", () => ({ times: clamped(times, 0, 3), interval: clamped(interval, 10, 255) })));
+  } else if (category.form === "combo") {
+    const capture = el("input", { type: "text", readOnly: true, placeholder: "Hier klicken, Tasten drücken" });
+    if (key.category === "combo") capture.value = key.value;
+    const held = new Set();
+    let combo = [];
+    capture.onkeydown = event => {
+      event.preventDefault();
+      if (event.repeat) return;
+      if (held.size === 0) combo = [];
+      held.add(event.code);
+      const hid = KEY_HID[event.code];
+      if (hid && combo.length < MAX_COMBO_KEYS && !combo.some(k => k.code === event.code)) {
+        combo.push({ code: event.code, label: keyLabel(event), hid });
+      }
+      capture.value = combo.map(k => k.label).join(" + ");
+    };
+    capture.onkeyup = event => {
+      event.preventDefault();
+      held.delete(event.code);
+    };
+    capture.onblur = () => held.clear();
+    details.append(
+      el("label", { className: "field" }, el("span", { textContent: "Tastenkombination (max. " + MAX_COMBO_KEYS + ")" }), capture),
+      applyButton(key, category, () => combo.length ? capture.value : "", () => ({ keys: combo.map(k => k.hid) })));
+  } else if (macros.length === 0) {
+    details.append(el("p", { className: "column-hint", textContent: "Noch keine Makros angelegt. Das geht im Bereich Makros." }));
+  } else {
+    for (const macro of macros) {
+      const button = el("button", { className: "option", textContent: macro.name });
+      button.setAttribute("aria-pressed", String(key.category === "macro" && key.value === macro.name));
+      button.onclick = () => {
+        if (macro.events.length === 0) {
+          setConfigStatus("Dieses Makro ist noch leer. Nimm zuerst Tasten auf.");
+          return;
+        }
+        assign(key, "macro", macro.name);
+      };
+      details.append(button);
+    }
+  }
+}
+
+function numberField(label, value, min, max) {
+  return el("label", { className: "field" },
+    el("span", { textContent: label }),
+    el("input", { type: "number", value, min, max }));
+}
+
+function applyButton(key, category, getValue, getData) {
+  const button = el("button", { className: "option", textContent: "Übernehmen" });
+  button.setAttribute("aria-pressed", "true");
+  button.onclick = () => {
+    const value = getValue();
+    if (value) assign(key, category.id, value, getData());
+  };
+  return button;
+}
+
+/* The slider is logarithmic so the common low range gets most of the travel. */
+const SLIDER_MAX = 1000;
+function dpiToSlider(dpi) {
+  return Math.round(Math.log(dpi / DPI_MIN) / Math.log(DPI_MAX / DPI_MIN) * SLIDER_MAX);
+}
+function sliderToDpi(position) {
+  const raw = DPI_MIN * Math.pow(DPI_MAX / DPI_MIN, position / SLIDER_MAX);
+  return snapDpi(raw);
+}
+function snapDpi(value) {
+  const step = value > 30000 ? 100 : DPI_STEP;
+  const snapped = Math.round(value / step) * step;
+  return Math.min(DPI_MAX, Math.max(DPI_MIN, snapped));
+}
+
+function renderTopDpi() {
+  const dpi = state.stages[state.active];
+  $("active-dpi").textContent = dpi + " DPI";
+  $("top-dpi").textContent = dpi + " DPI";
+}
+
+function renderStages() {
+  const box = $("stages");
+  box.replaceChildren();
+  state.stages.forEach((dpi, index) => {
+    const radio = el("button", { className: "radio", title: "Als aktive Stufe setzen" });
+    radio.setAttribute("role", "radio");
+    radio.setAttribute("aria-checked", String(index === state.active));
+    radio.setAttribute("aria-label", "Stufe " + (index + 1) + " aktiv");
+    radio.onclick = () => { state.active = index; renderStages(); syncMouse("stages"); };
+
+    const slider = el("input", { type: "range", min: 0, max: SLIDER_MAX, value: dpiToSlider(dpi) });
+    slider.setAttribute("aria-label", "DPI von Stufe " + (index + 1));
+    const number = el("input", { type: "number", min: DPI_MIN, max: DPI_MAX, step: DPI_STEP, value: dpi });
+    number.setAttribute("aria-label", "DPI-Wert von Stufe " + (index + 1));
+
+    slider.oninput = () => {
+      state.stages[index] = sliderToDpi(Number(slider.value));
+      number.value = state.stages[index];
+      renderTopDpi();
+    };
+    // Arrow keys and typing both land here. Values below the minimum are still being typed.
+    number.oninput = () => {
+      const value = Number(number.value);
+      if (number.value === "" || value < DPI_MIN || value > DPI_MAX) return;
+      state.stages[index] = value;
+      slider.value = dpiToSlider(value);
+      renderTopDpi();
+      syncMouseLater("stages");
+    };
+    number.onchange = () => {
+      const value = Number(number.value);
+      state.stages[index] = snapDpi(Number.isFinite(value) ? value : dpi);
+      number.value = state.stages[index];
+      slider.value = dpiToSlider(state.stages[index]);
+      renderTopDpi();
+      syncMouseLater("stages");
+    };
+    slider.onchange = () => syncMouse("stages");
+
+    const remove = el("button", { className: "remove", textContent: "✕", disabled: state.stages.length === 1, title: "Stufe entfernen" });
+    remove.setAttribute("aria-label", "Stufe " + (index + 1) + " entfernen");
+    remove.onclick = () => {
+      state.stages.splice(index, 1);
+      if (state.active > index || state.active >= state.stages.length) state.active = Math.max(0, state.active - 1);
+      renderStages();
+      syncMouse("stages");
+    };
+
+    box.append(el("div", { className: "stage-row" + (index === state.active ? " active" : "") },
+      radio,
+      el("span", { className: "name", textContent: "Stufe " + (index + 1) }),
+      slider,
+      el("div", { className: "number" }, number),
+      remove));
+  });
+
+  const add = $("add-stage");
+  const full = state.stages.length >= MAX_STAGES;
+  add.disabled = full;
+  add.textContent = full ? "Maximal " + MAX_STAGES + " Stufen" : "+ Stufe hinzufügen";
+  renderTopDpi();
+}
+
+$("add-stage").onclick = () => {
+  const last = state.stages[state.stages.length - 1];
+  state.stages.push(snapDpi(last * 2));
+  renderStages();
+  syncMouse("stages");
+};
+
+function renderSegments(id, options, current, format, onPick) {
+  const box = $(id);
+  box.replaceChildren();
+  for (const option of options) {
+    const button = el("button", { textContent: format(option) });
+    button.setAttribute("aria-pressed", String(option === current));
+    button.onclick = () => onPick(option);
+    box.append(button);
+  }
+}
+
+function renderPolling() {
+  renderSegments("polling", [125, 250, 500, 1000, 2000, 4000, 8000], state.polling, v => v + " Hz", v => { state.polling = v; renderPolling(); syncMouse("polling"); });
+  $("polling").querySelectorAll("button").forEach(button => { button.disabled = parseInt(button.textContent, 10) > pollingLimit; });
+}
+function renderLod() {
+  renderSegments("lod", ["0,7 mm", "1 mm", "2 mm"], state.lod, v => v, v => { state.lod = v; renderLod(); syncMouse("lod"); });
+}
+
+const SENSOR_SWITCHES = [
+  { id: "ripple", label: "Ripple Control", text: "Glättet Zittern im Sensorsignal, kann etwas Verzögerung bringen." },
+  { id: "angle", label: "Angle Snap", text: "Begradigt Bewegungen zu geraden Linien." },
+  { id: "motionSync", label: "Motion Sync", text: "Stimmt die Sensordaten auf die Abfragen des PCs ab." },
+  { id: "longDistance", label: "Long Distance Mode", text: "Stärkere Funkverbindung auf Distanz, verkürzt die Akkulaufzeit." }
+];
+const TIME_OPTIONS = ["10 s", "30 s", "1 Min.", "2 Min.", "5 Min.", "10 Min.", "15 Min."];
+const sensor = {
+  switches: { ripple: false, angle: false, motionSync: true, longDistance: false },
+  performance: false,
+  performanceTime: "1 Min.",
+  sleepTime: "1 Min."
+};
+
+function renderSensor() {
+  const box = $("sensor-switches");
+  box.replaceChildren();
+  for (const item of SENSOR_SWITCHES) {
+    const labelId = "switch-" + item.id;
+    const button = el("button", { className: "switch" });
+    button.setAttribute("role", "switch");
+    button.setAttribute("aria-checked", String(sensor.switches[item.id]));
+    button.setAttribute("aria-labelledby", labelId);
+    button.onclick = () => { sensor.switches[item.id] = !sensor.switches[item.id]; renderSensor(); syncMouse(item.id); };
+    box.append(el("div", { className: "switch-row" },
+      el("div", {}, el("b", { id: labelId, textContent: item.label }), el("small", { textContent: item.text })),
+      button));
+  }
+
+  const performance = $("performance-switch");
+  performance.setAttribute("aria-checked", String(sensor.performance));
+  performance.onclick = () => { sensor.performance = !sensor.performance; renderSensor(); syncMouse("performance"); };
+  $("performance-time-box").disabled = !sensor.performance;
+  renderSegments("performance-time", TIME_OPTIONS, sensor.performanceTime, v => v, v => { sensor.performanceTime = v; renderSensor(); syncMouse("performanceTime"); });
+  renderSegments("sleep-time", TIME_OPTIONS, sensor.sleepTime, v => v, v => { sensor.sleepTime = v; renderSensor(); syncMouse("sleepTime"); });
+}
+
+$("debounce").value = state.debounce;
+function renderDebounce() { $("debounce-value").textContent = state.debounce + " ms"; }
+$("debounce").oninput = e => { state.debounce = Number(e.target.value); renderDebounce(); };
+$("debounce").onchange = () => syncMouse("debounce");
+
+/* Makros */
+const MAX_EVENTS = 70, MAX_NAME_LENGTH = 30, MIN_DELAY = 10, MAX_DELAY = 65535, UNTIL_RELEASED = 254, UNTIL_OTHER = 255;
+const KEY_NAMES = {
+  Space: "Leertaste", Enter: "Enter", Backspace: "Rücktaste", Tab: "Tab", Escape: "Esc",
+  ControlLeft: "Strg links", ControlRight: "Strg rechts", ShiftLeft: "Umschalt links", ShiftRight: "Umschalt rechts",
+  AltLeft: "Alt", AltRight: "Alt Gr", MetaLeft: "Win", MetaRight: "Win rechts", CapsLock: "Feststelltaste",
+  ArrowUp: "Pfeil hoch", ArrowDown: "Pfeil runter", ArrowLeft: "Pfeil links", ArrowRight: "Pfeil rechts",
+  Delete: "Entf", Insert: "Einfg", Home: "Pos1", End: "Ende", PageUp: "Bild hoch", PageDown: "Bild runter"
+};
+const MOUSE_INSERTS = [
+  { value: "Linksklick", label: "Linksklick" },
+  { value: "Rechtsklick", label: "Rechtsklick" },
+  { value: "Mausrad-Klick", label: "Mausrad-Klick" },
+  { value: "Vorwärts", label: "Vorwärts" },
+  { value: "Zurück", label: "Zurück" }
+];
+const DEFAULT_KEYS = Object.fromEntries(keys.map(k => [k.id, { category: k.category, value: k.value }]));
+
+const macros = [{
+  name: "Beispiel: Kopieren",
+  cycle: 1,
+  events: [
+    { down: true, key: "Strg links", delay: 20 },
+    { down: true, key: "C", delay: 20 },
+    { down: false, key: "C", delay: 20 },
+    { down: false, key: "Strg links", delay: 0 }
+  ]
+}];
+const macroUi = {
+  selected: 0,
+  events: [],
+  cycle: 1,
+  eventIndex: -1,
+  dirty: false,
+  recording: false,
+  lastTimeStamp: null,
+  naming: null,         // null, "new" or the index of the macro being renamed
+  capture: null,        // pending key capture: { mode: "insert" | "modify", down }
+  confirmDelete: false,
+  notice: ""
+};
+
+// Keyboard codes as the mouse stores them: [kind, value]. Kind 0 is a modifier, 7 the menu key.
+const MAX_COMBO_KEYS = 5;
+const KEY_HID = {};
+for (const [codes, kind] of [
+  ["Escape:41 F1:58 F2:59 F3:60 F4:61 F5:62 F6:63 F7:64 F8:65 F9:66 F10:67 F11:68 F12:69 Backquote:53 Digit1:30 Digit2:31 Digit3:32 Digit4:33 Digit5:34 Digit6:35 Digit7:36 Digit8:37 Digit9:38 Digit0:39 Minus:45 Equal:46 Backspace:42 Tab:43 KeyQ:20 KeyW:26 KeyE:8 KeyR:21 KeyT:23 KeyY:28 KeyU:24 KeyI:12 KeyO:18 KeyP:19 BracketLeft:47 BracketRight:48 Backslash:49 CapsLock:57 KeyA:4 KeyS:22 KeyD:7 KeyF:9 KeyG:10 KeyH:11 KeyJ:13 KeyK:14 KeyL:15 Semicolon:51 Quote:52 Enter:40 KeyZ:29 KeyX:27 KeyC:6 KeyV:25 KeyB:5 KeyN:17 KeyM:16 Comma:54 Period:55 Slash:56 Space:44 PrintScreen:70 ScrollLock:71 Pause:72 Insert:73 Home:74 PageUp:75 Delete:76 End:77 PageDown:78 ArrowUp:82 ArrowLeft:80 ArrowDown:81 ArrowRight:79 NumLock:83 NumpadDivide:84 NumpadMultiply:85 NumpadSubtract:86 NumpadAdd:87 NumpadDecimal:99 NumpadEnter:88 Numpad1:89 Numpad2:90 Numpad3:91 Numpad4:92 Numpad5:93 Numpad6:94 Numpad7:95 Numpad8:96 Numpad9:97 Numpad0:98", 1],
+  ["ShiftLeft:2 ShiftRight:32 ControlLeft:1 ControlRight:16 AltLeft:4 AltRight:64 MetaLeft:8 MetaRight:128", 0],
+  ["ContextMenu:1", 7]
+]) {
+  for (const entry of codes.split(" ")) {
+    const [code, value] = entry.split(":");
+    KEY_HID[code] = { kind, value: Number(value) };
+  }
+}
+const MOUSE_HID = {
+  "Linksklick": { kind: 4, value: 1 },
+  "Rechtsklick": { kind: 4, value: 2 },
+  "Mausrad-Klick": { kind: 4, value: 4 },
+  "Vorwärts": { kind: 4, value: 16 },
+  "Zurück": { kind: 4, value: 8 }
+};
+
+function keyLabel(event) {
+  if (KEY_NAMES[event.code]) return KEY_NAMES[event.code];
+  if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3);
+  if (/^Digit\d$/.test(event.code)) return event.code.slice(5);
+  if (/^F\d+$/.test(event.code)) return event.code;
+  return event.key.length === 1 ? event.key.toUpperCase() : event.code;
+}
+
+function loadMacro(index) {
+  macroUi.selected = index;
+  const macro = macros[index];
+  macroUi.events = macro ? macro.events.map(e => ({ ...e })) : [];
+  macroUi.cycle = macro ? macro.cycle : 1;
+  macroUi.eventIndex = -1;
+  macroUi.dirty = false;
+  macroUi.confirmDelete = false;
+  macroUi.notice = "";
+}
+
+function markDirty() {
+  macroUi.dirty = true;
+  renderMacros();
+}
+
+function showMacroNotice(text) {
+  macroUi.notice = text;
+  renderMacros();
+}
+
+function renderMacros() {
+  const ui = macroUi;
+  const busy = ui.recording || Boolean(ui.capture);
+  const hasMacro = ui.selected >= 0 && ui.selected < macros.length;
+
+  const list = $("macro-list");
+  list.replaceChildren();
+  macros.forEach((macro, index) => {
+    if (ui.naming === index) { list.append(nameEditor(macro.name)); return; }
+    const row = el("div", { className: "macro-row" + (index === ui.selected ? " on" : "") });
+    const pick = el("button", { textContent: macro.name, title: macro.name, disabled: busy });
+    pick.onclick = () => {
+      if (index === ui.selected) return;
+      if (ui.dirty) { showMacroNotice("Änderungen zuerst speichern oder verwerfen."); return; }
+      loadMacro(index);
+      renderMacros();
+    };
+    const rename = el("button", { className: "macro-rename", textContent: "✎", title: "Umbenennen", disabled: busy });
+    rename.setAttribute("aria-label", macro.name + " umbenennen");
+    rename.onclick = () => {
+      if (ui.dirty) { showMacroNotice("Änderungen zuerst speichern oder verwerfen."); return; }
+      ui.naming = index;
+      renderMacros();
+    };
+    row.append(pick, rename);
+    list.append(row);
+  });
+  if (ui.naming === "new") list.append(nameEditor(""));
+  if (macros.length === 0 && ui.naming === null) {
+    list.append(el("div", { className: "macro-empty", textContent: "Noch keine Makros." }));
+  }
+
+  $("macro-new").disabled = busy;
+  const del = $("macro-delete");
+  del.disabled = !hasMacro || busy;
+  del.textContent = ui.confirmDelete ? "Wirklich löschen?" : "Löschen";
+  del.classList.toggle("danger", ui.confirmDelete);
+
+  $("macro-events-title").textContent = hasMacro ? "Tastenfolge: " + macros[ui.selected].name : "Tastenfolge";
+  renderEvents(hasMacro);
+
+  const notice = $("macro-notice");
+  notice.replaceChildren();
+  const message = ui.capture ? "Jetzt die gewünschte Taste drücken." : ui.recording ? "Aufnahme läuft: " + ui.events.length + " von " + MAX_EVENTS + " Ereignissen." : ui.notice;
+  notice.hidden = !message;
+  if (message) {
+    notice.append(el("span", { textContent: message }));
+    if (ui.capture) {
+      const cancel = el("button", { textContent: "Abbrechen" });
+      cancel.onclick = () => { ui.capture = null; renderMacros(); };
+      notice.append(cancel);
+    }
+  }
+
+  const hasEvent = ui.eventIndex >= 0 && ui.eventIndex < ui.events.length;
+  $("event-modify").disabled = !hasEvent || busy;
+  $("event-delete").disabled = !hasEvent || busy;
+
+  const record = $("macro-record");
+  record.disabled = !hasMacro || Boolean(ui.capture);
+  record.classList.toggle("on", ui.recording);
+  $("macro-record-label").textContent = ui.recording ? "Aufnahme stoppen" : "Aufnahme starten";
+
+  document.querySelectorAll("#page-macros .macro-options input").forEach(input => { input.disabled = !hasMacro || busy; });
+  const cycleValue = ui.cycle === UNTIL_RELEASED || ui.cycle === UNTIL_OTHER ? String(ui.cycle) : "1";
+  document.querySelectorAll('input[name="cycle-mode"]').forEach(input => { input.checked = input.value === cycleValue; });
+  if (cycleValue === "1") $("macro-cycles").value = ui.cycle;
+  $("macro-insert").style.pointerEvents = hasMacro && !busy ? "" : "none";
+  $("macro-insert").style.opacity = hasMacro && !busy ? "" : ".4";
+
+  $("macro-save").disabled = !ui.dirty || busy;
+  $("macro-discard").disabled = !ui.dirty || busy;
+
+  document.querySelectorAll(".nav button[data-page]").forEach(button => { button.disabled = ui.recording; });
+  $("config-tools").style.pointerEvents = ui.recording ? "none" : "";
+  $("config-tools").style.opacity = ui.recording ? ".4" : "";
+  $("profile-select").style.pointerEvents = busy ? "none" : "";
+  $("profile-select").style.opacity = busy ? ".4" : "";
+}
+
+function nameEditor(initial) {
+  const input = el("input", { className: "name-input", value: initial, maxLength: MAX_NAME_LENGTH, placeholder: "Name eingeben" });
+  input.setAttribute("aria-label", "Makroname");
+  let finished = false;
+  const finish = commit => {
+    if (finished) return;
+    finished = true;
+    const name = input.value.trim();
+    const index = macroUi.naming;
+    macroUi.naming = null;
+    if (commit && name) {
+      const taken = macros.some((macro, i) => macro.name === name && i !== index);
+      if (taken) { showMacroNotice("Dieser Name ist schon vergeben."); return; }
+      if (new TextEncoder().encode(name).length > MAX_NAME_LENGTH) {
+        showMacroNotice("Der Name ist zu lang, Umlaute zählen doppelt.");
+        return;
+      }
+      if (index === "new") {
+        macros.push({ name, cycle: 1, events: [] });
+        loadMacro(macros.length - 1);
+        persistMacros();
+      } else {
+        const previous = macros[index].name;
+        macros[index].name = name;
+        allKeyBindings().filter(k => k.category === "macro" && k.value === previous).forEach(k => { k.value = name; });
+        persistMacros();
+        syncMouse("macro", macros[index]);
+        renderKeys();
+      }
+    }
+    renderMacros();
+  };
+  input.onkeydown = event => {
+    if (event.key === "Enter") finish(true);
+    else if (event.key === "Escape") finish(false);
+  };
+  input.onblur = () => finish(true);
+  requestAnimationFrame(() => { input.focus(); input.select(); });
+  return el("div", { className: "macro-row" }, input);
+}
+
+function renderEvents(hasMacro) {
+  const box = $("macro-events");
+  box.replaceChildren();
+  if (!hasMacro) {
+    box.append(el("div", { className: "macro-empty", textContent: "Links ein Makro anlegen oder auswählen." }));
+    return;
+  }
+  if (macroUi.events.length === 0) {
+    box.append(el("div", { className: "macro-empty", textContent: "Noch leer. Starte die Aufnahme und drücke die gewünschten Tasten." }));
+    return;
+  }
+  const head = el("thead", {}, el("tr", {},
+    el("th", { textContent: "Nr." }), el("th", { textContent: "Aktion" }), el("th", { textContent: "Taste" }), el("th", { textContent: "Danach (ms)" })));
+  const body = el("tbody");
+  macroUi.events.forEach((event, index) => {
+    const delay = el("input", { type: "number", min: MIN_DELAY, max: MAX_DELAY, value: event.delay, disabled: macroUi.recording });
+    delay.setAttribute("aria-label", "Verzögerung nach Ereignis " + (index + 1));
+    delay.onclick = e => e.stopPropagation();
+    delay.onchange = () => {
+      const value = Math.round(Number(delay.value));
+      event.delay = Number.isFinite(value) ? Math.min(MAX_DELAY, Math.max(MIN_DELAY, value)) : MIN_DELAY;
+      markDirty();
+    };
+    const row = el("tr", { className: index === macroUi.eventIndex ? "on" : "" },
+      el("td", { textContent: index + 1 }),
+      el("td", { textContent: event.down ? "↓ Drücken" : "↑ Loslassen" }),
+      el("td", { textContent: event.key }),
+      el("td", {}, delay));
+    row.onclick = () => {
+      if (macroUi.recording) return;
+      macroUi.eventIndex = index;
+      renderMacros();
+    };
+    body.append(row);
+  });
+  box.append(el("table", { className: "event-table" }, head, body));
+  if (macroUi.recording) box.scrollTop = box.scrollHeight;
+}
+
+function insertEvents(newEvents) {
+  const ui = macroUi;
+  if (ui.events.length + newEvents.length > MAX_EVENTS) {
+    showMacroNotice("Maximal " + MAX_EVENTS + " Ereignisse pro Makro.");
+    return;
+  }
+  const at = ui.eventIndex >= 0 ? ui.eventIndex + 1 : ui.events.length;
+  ui.events.splice(at, 0, ...newEvents);
+  ui.eventIndex = at + newEvents.length - 1;
+  ui.notice = "";
+  markDirty();
+}
+
+function fixedDelay() {
+  const value = Math.round(Number($("macro-delay").value));
+  return Number.isFinite(value) ? Math.min(MAX_DELAY, Math.max(MIN_DELAY, value)) : MIN_DELAY;
+}
+
+function onRecordKey(event) {
+  const ui = macroUi;
+  if (ui.capture) {
+    if (event.type !== "keydown" || event.repeat) { event.preventDefault(); return; }
+    event.preventDefault();
+    const label = keyLabel(event);
+    const hid = KEY_HID[event.code];
+    if (!hid) {
+      showMacroNotice("Diese Taste kann die Maus nicht senden.");
+      return;
+    }
+    const capture = ui.capture;
+    ui.capture = null;
+    if (capture.mode === "modify") {
+      Object.assign(ui.events[ui.eventIndex], { key: label }, hid);
+      markDirty();
+    } else {
+      insertEvents([{ down: capture.down, key: label, delay: MIN_DELAY, ...hid }]);
+    }
+    return;
+  }
+  if (!ui.recording) return;
+  event.preventDefault();
+  if (event.repeat) return;
+  if (ui.events.length >= MAX_EVENTS) {
+    stopRecording("Maximal " + MAX_EVENTS + " Ereignisse erreicht, Aufnahme gestoppt.");
+    return;
+  }
+  const hid = KEY_HID[event.code];
+  if (!hid) return;
+  const auto = document.querySelector('input[name="delay-mode"]:checked').value === "auto";
+  if (ui.events.length > 0) {
+    const elapsed = Math.min(MAX_DELAY, Math.floor(event.timeStamp - ui.lastTimeStamp));
+    ui.events[ui.events.length - 1].delay = auto ? elapsed : fixedDelay();
+  }
+  ui.lastTimeStamp = event.timeStamp;
+  ui.events.push({ down: event.type === "keydown", key: keyLabel(event), delay: 0, ...hid });
+  ui.eventIndex = ui.events.length - 1;
+  renderMacros();
+}
+document.addEventListener("keydown", onRecordKey, true);
+document.addEventListener("keyup", onRecordKey, true);
+
+function saveSelectedMacro() {
+  const macro = macros[macroUi.selected];
+  macro.events = macroUi.events.map(e => ({ ...e }));
+  macro.cycle = macroUi.cycle;
+  persistMacros();
+  syncMouse("macro", macro);
+  macroUi.dirty = false;
+  macroUi.notice = "";
+}
+
+function stopRecording(notice) {
+  macroUi.recording = false;
+  if (macroUi.events.length === 0) {
+    // Nothing recorded: keep the macro as it was.
+    loadMacro(macroUi.selected);
+    macroUi.notice = "Keine Taste aufgenommen, das Makro bleibt unverändert.";
+  } else {
+    // A finished recording is saved right away, so that it cannot get lost before it is assigned.
+    saveSelectedMacro();
+    macroUi.notice = notice || "Aufnahme gespeichert.";
+  }
+  renderMacros();
+}
+
+$("macro-record").onclick = () => {
+  const ui = macroUi;
+  if (ui.recording) { stopRecording(); return; }
+  ui.recording = true;
+  ui.events = [];
+  ui.eventIndex = -1;
+  ui.notice = "";
+  $("macro-record").blur();
+  renderMacros();
+};
+
+$("macro-new").onclick = () => {
+  if (macroUi.dirty) { showMacroNotice("Änderungen zuerst speichern oder verwerfen."); return; }
+  macroUi.naming = "new";
+  renderMacros();
+};
+
+$("macro-delete").onclick = () => {
+  const ui = macroUi;
+  if (!ui.confirmDelete) {
+    ui.confirmDelete = true;
+    renderMacros();
+    return;
+  }
+  const name = macros[ui.selected].name;
+  macros.splice(ui.selected, 1);
+  // A key that used the deleted macro goes back to its default function.
+  const affected = keys.filter(k => k.category === "macro" && k.value === name);
+  allKeyBindings().filter(k => k.category === "macro" && k.value === name).forEach(k => Object.assign(k, DEFAULT_KEYS[k.id]));
+  persistMacros();
+  affected.forEach(k => syncMouse("clearMacro", k));
+  loadMacro(Math.min(ui.selected, macros.length - 1));
+  renderKeys();
+  renderMacros();
+};
+document.addEventListener("mousedown", event => {
+  if (macroUi.confirmDelete && event.target !== $("macro-delete")) {
+    macroUi.confirmDelete = false;
+    renderMacros();
+  }
+});
+
+$("event-modify").onclick = () => {
+  macroUi.capture = { mode: "modify" };
+  $("event-modify").blur();
+  renderMacros();
+};
+$("event-delete").onclick = () => {
+  macroUi.events.splice(macroUi.eventIndex, 1);
+  macroUi.eventIndex = -1;
+  markDirty();
+};
+$("macro-save").onclick = () => {
+  saveSelectedMacro();
+  renderMacros();
+};
+$("macro-discard").onclick = () => {
+  loadMacro(macroUi.selected);
+  renderMacros();
+};
+document.querySelectorAll('input[name="cycle-mode"]').forEach(input => {
+  input.onchange = () => {
+    macroUi.cycle = input.value === "1" ? clampCycles() : Number(input.value);
+    markDirty();
+  };
+});
+function clampCycles() {
+  const value = Math.round(Number($("macro-cycles").value));
+  const cycles = Number.isFinite(value) ? Math.min(250, Math.max(1, value)) : 1;
+  $("macro-cycles").value = cycles;
+  return cycles;
+}
+$("macro-cycles").onchange = () => {
+  macroUi.cycle = clampCycles();
+  markDirty();
+};
+$("macro-delay").onchange = () => { $("macro-delay").value = fixedDelay(); };
+
+const INSERT_NONE = "none";
+const insertDropdown = createDropdown($("macro-insert"), "macro-events-title", [
+  { value: INSERT_NONE, label: "Befehl einfügen" },
+  { value: "press", label: "Taste drücken" },
+  { value: "release", label: "Taste loslassen" },
+  ...MOUSE_INSERTS
+], choice => {
+  insertDropdown.set(INSERT_NONE);
+  if (choice === "press" || choice === "release") {
+    macroUi.capture = { mode: "insert", down: choice === "press" };
+    renderMacros();
+    return;
+  }
+  insertEvents([
+    { down: true, key: choice, delay: MIN_DELAY, ...MOUSE_HID[choice] },
+    { down: false, key: choice, delay: MIN_DELAY, ...MOUSE_HID[choice] }
+  ]);
+});
+insertDropdown.set(INSERT_NONE);
+
+/* Empfänger-Licht */
+const LIGHT_MODES = [
+  { value: 0, label: "Aus",               color: false, brightness: false, speed: false },
+  { value: 1, label: "Regenbogen",        color: false, brightness: true,  speed: true },
+  { value: 2, label: "Einfarbig atmend",  color: true,  brightness: true,  speed: true },
+  { value: 3, label: "Feste Farbe",       color: true,  brightness: true,  speed: false },
+  { value: 4, label: "Neon",              color: false, brightness: true,  speed: true },
+  { value: 5, label: "Regenbogen atmend", color: false, brightness: true,  speed: true }
+];
+const PRESET_COLORS = [[255, 202, 52], [255, 115, 0], [230, 30, 40], [205, 114, 173], [96, 24, 132], [30, 60, 230], [46, 167, 224], [0, 200, 180], [60, 190, 70], [255, 255, 255]];
+/* One pen stroke that runs a little past its start; turned per colour so no two circles look alike. */
+const PRESET_CIRCLE = "M3 10C3 5 8 2.6 12 3C16 3.6 18 7 17.4 11C16.8 15.4 12 17.6 8 17C4.6 16.4 2.4 13 3 9.4C3.2 7.6 4.4 6 6 4.8";
+const light = { mode: 3, color: [0, 33, 255], brightness: 3, speed: 8 };
+const lightDropdown = createDropdown($("light-mode"), "light-mode-label", LIGHT_MODES, mode => { light.mode = mode; renderLight(); syncMouse("light"); });
+
+function toHex(rgb) {
+  return "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
+}
+function hueToRgb(hue) {
+  const f = n => {
+    const k = (n + hue / 60) % 6;
+    return Math.round(255 * (1 - Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return [f(5), f(3), f(1)];
+}
+function rgbToHue([r, g, b]) {
+  const max = Math.max(r, g, b), delta = max - Math.min(r, g, b);
+  if (delta === 0) return 0;
+  const sector = max === r ? ((g - b) / delta + 6) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  return Math.round(sector * 60);
+}
+
+const MIN_HUE_SPREAD = 24;
+let lightHue = 0;
+// While the colour is being dragged, the rounded RGB values must not move the hue or the knob.
+let lightColorHeld = false;
+
+function rgbToSv(rgb) {
+  const max = Math.max(...rgb);
+  return [max === 0 ? 0 : (max - Math.min(...rgb)) / max, max / 255];
+}
+function hsvToRgb(hue, saturation, brightness) {
+  const f = n => {
+    const k = (n + hue / 60) % 6;
+    return Math.round(255 * brightness * (1 - saturation * Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return [f(5), f(3), f(1)];
+}
+
+function renderLight() {
+  const mode = LIGHT_MODES[light.mode];
+  const hex = toHex(light.color);
+  lightDropdown.set(light.mode);
+  $("light-color").disabled = !mode.color;
+  $("light-brightness-box").disabled = !mode.brightness;
+  $("light-speed-box").disabled = !mode.speed;
+  // Near grey the hue is meaningless and jumps wildly with every small step, so it stays put.
+  if (!lightColorHeld && Math.max(...light.color) - Math.min(...light.color) >= MIN_HUE_SPREAD) lightHue = rgbToHue(light.color);
+  $("light-hue").value = lightHue;
+  const [saturation, brightness] = rgbToSv(light.color);
+  $("light-sv").style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${lightHue} 100% 50%))`;
+  $("light-sv-knob").style.left = saturation * 100 + "%";
+  $("light-sv-knob").style.top = (1 - brightness) * 100 + "%";
+  $("light-sv-knob").style.background = hex;
+  $("light-sv").setAttribute("aria-valuetext", `Sättigung ${Math.round(saturation * 100)} %, Helligkeit ${Math.round(brightness * 100)} %`);
+  ["r", "g", "b"].forEach((channel, i) => { $("light-" + channel).value = light.color[i]; });
+  $("light-brightness").value = light.brightness;
+  $("light-brightness-value").textContent = light.brightness;
+  $("light-speed").value = light.speed;
+  $("light-speed-value").textContent = light.speed;
+
+  // Sample preview only: a small light bar in the chosen colour, stronger with higher brightness.
+  const led = $("receiver-led");
+  const ledColor = mode.color ? hex : "linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)";
+  led.style.background = mode.value === 0 ? "var(--ink-line)" : ledColor;
+  led.style.opacity = mode.value === 0 ? 1 : 0.35 + light.brightness * 0.065;
+  led.style.boxShadow = mode.value !== 0 && mode.color ? "0 0 " + (2 + light.brightness) + "px " + hex : "none";
+}
+
+function setLightColor(rgb) {
+  light.color = rgb;
+  renderLight();
+}
+
+/* The hue only changes the colour; grey stays grey until a spot in the field is chosen. */
+$("light-hue").oninput = e => {
+  lightColorHeld = true;
+  lightHue = Number(e.target.value);
+  const [saturation, brightness] = rgbToSv(light.color);
+  setLightColor(hsvToRgb(lightHue, saturation, brightness));
+};
+$("light-hue").onchange = () => {
+  lightColorHeld = false;
+  syncMouse("light");
+};
+
+function pickLightColor(event) {
+  const box = $("light-sv").getBoundingClientRect();
+  const saturation = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+  const brightness = Math.min(1, Math.max(0, 1 - (event.clientY - box.top) / box.height));
+  setLightColor(hsvToRgb(lightHue, saturation, brightness));
+}
+$("light-sv").onpointerdown = event => {
+  $("light-sv").setPointerCapture(event.pointerId);
+  lightColorHeld = true;
+  pickLightColor(event);
+};
+$("light-sv").onpointermove = event => {
+  if ($("light-sv").hasPointerCapture(event.pointerId)) pickLightColor(event);
+};
+$("light-sv").onpointerup = $("light-sv").onpointercancel = () => {
+  if (!lightColorHeld) return;
+  lightColorHeld = false;
+  syncMouse("light");
+};
+$("light-sv").onkeydown = event => {
+  const moves = { ArrowLeft: [-.02, 0], ArrowRight: [.02, 0], ArrowUp: [0, .02], ArrowDown: [0, -.02] };
+  if (!(event.key in moves)) return;
+  event.preventDefault();
+  const [saturation, brightness] = rgbToSv(light.color);
+  const clamp = value => Math.min(1, Math.max(0, value));
+  setLightColor(hsvToRgb(lightHue, clamp(saturation + moves[event.key][0]), clamp(brightness + moves[event.key][1])));
+  syncMouseLater("light");
+};
+["r", "g", "b"].forEach((channel, i) => {
+  // Arrow keys and typing both land here. An empty field keeps the last colour until something is typed.
+  $("light-" + channel).oninput = $("light-" + channel).onchange = e => {
+    if (e.target.value === "") {
+      if (e.type === "change") renderLight();
+      return;
+    }
+    const rgb = light.color.slice();
+    const value = Number(e.target.value);
+    rgb[i] = Number.isFinite(value) ? Math.min(255, Math.max(0, Math.round(value))) : rgb[i];
+    setLightColor(rgb);
+    syncMouseLater("light");
+  };
+});
+$("light-presets").append(...PRESET_COLORS.map((rgb, index) => {
+  const button = el("button", { className: "preset", title: toHex(rgb) });
+  button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="${PRESET_CIRCLE}" fill="${toHex(rgb)}" transform="rotate(${index * 67} 10 10)"/></svg>`;
+  button.setAttribute("aria-label", "Farbe " + toHex(rgb));
+  button.onclick = () => { setLightColor(rgb.slice()); syncMouse("light"); };
+  return button;
+}));
+$("light-brightness").oninput = e => { light.brightness = Number(e.target.value); renderLight(); };
+$("light-speed").oninput = e => { light.speed = Number(e.target.value); renderLight(); };
+$("light-brightness").onchange = () => syncMouse("light");
+$("light-speed").onchange = () => syncMouse("light");
+
+/* Profile: the mouse swaps keys, DPI and sensor settings per profile. The receiver light and the macro list stay shared. */
+const PROFILE_COUNT = 4;
+
+function snapshotProfile() {
+  return JSON.parse(JSON.stringify({
+    keys: keys.map(k => ({ id: k.id, category: k.category, value: k.value })),
+    state,
+    sensor
+  }));
+}
+
+const profiles = Array.from({ length: PROFILE_COUNT }, snapshotProfile);
+let activeProfile = 0;
+
+function allKeyBindings() {
+  const stored = profiles.filter((_, i) => i !== activeProfile).flatMap(p => p.keys);
+  return [...keys, ...stored];
+}
+
+function switchProfile(index) {
+  profiles[activeProfile] = snapshotProfile();
+  activeProfile = index;
+  applyProfile(profiles[index]);
+}
+
+function applyProfile(source) {
+  const target = JSON.parse(JSON.stringify(source));
+  target.keys.forEach(saved => Object.assign(keys.find(k => k.id === saved.id), saved));
+  Object.assign(state, target.state);
+  Object.assign(sensor, target.sensor);
+  openCategory = keys.find(k => k.id === selectedKey).category;
+  $("debounce").value = state.debounce;
+  renderKeys();
+  renderStages();
+  renderPolling();
+  renderLod();
+  renderDebounce();
+  renderSensor();
+}
+
+/* The mouse only knows the numbers, so a custom name always comes on top of "Profil 1". */
+let profileNames = Array(PROFILE_COUNT).fill("");
+const profileLabel = (index, separator = "–") =>
+  "Profil " + (index + 1) + (profileNames[index] ? " " + separator + " " + profileNames[index] : "");
+
+let chooseProfile = index => { switchProfile(index); profileDropdown.set(index); };
+const profileDropdown = createDropdown($("profile-select"), "profile-label",
+  profiles.map((_, i) => ({ value: i, label: profileLabel(i) })),
+  index => chooseProfile(index));
+profileDropdown.set(activeProfile);
+
+let persistProfileNames = () => {};
+function showProfileEditor(on) {
+  $("profile-select").hidden = on;
+  $("profile-name").hidden = !on;
+  $("profile-rename").hidden = on;
+}
+$("profile-rename").onclick = () => {
+  $("profile-name").value = profileNames[activeProfile];
+  showProfileEditor(true);
+  $("profile-name").focus();
+  $("profile-name").select();
+};
+$("profile-name").onkeydown = event => {
+  if (event.key === "Enter") $("profile-name").blur();
+  if (event.key === "Escape") { showProfileEditor(false); $("profile-rename").focus(); }
+};
+$("profile-name").onblur = () => {
+  if ($("profile-name").hidden) return;
+  profileNames[activeProfile] = $("profile-name").value.trim();
+  profileDropdown.setLabels(profileLabel);
+  showProfileEditor(false);
+  persistProfileNames();
+};
+
+/* Konfiguration: flash data plus a 64 byte footer. */
+const CONFIG_FOOTER = 64, CONFIG_VENDOR = "Compx Inc", CONFIG_TYPE = "mouse", CONFIG_SENSOR = "3950";
+
+const STATUS_VISIBLE_MS = 8000;
+let statusTimer = 0;
+/* Messages fade on their own. A running action keeps its message until the result replaces it. */
+function setConfigStatus(text, keep = false) {
+  clearTimeout(statusTimer);
+  $("config-status").textContent = text;
+  if (text && !keep) statusTimer = setTimeout(() => { $("config-status").textContent = ""; }, STATUS_VISIBLE_MS);
+}
+const fileNameOf = path => path.split(/[\\/]/).pop();
+
+function readFooterText(bytes, offset, length) {
+  return new TextDecoder().decode(bytes.subarray(offset, offset + length)).replace(/\0+$/, "");
+}
+
+function checkConfigFile(bytes) {
+  const footer = bytes.length - CONFIG_FOOTER;
+  if (footer <= 0 || readFooterText(bytes, footer, 32) !== CONFIG_VENDOR) return "Keine gültige Konfigurationsdatei.";
+  if (readFooterText(bytes, footer + 32, 16) !== CONFIG_TYPE || readFooterText(bytes, footer + 48, 16) !== CONFIG_SENSOR) {
+    return "Die Datei passt nicht zu dieser Maus.";
+  }
+  return "Datei ist gültig. Im Entwurf wird nichts geschrieben.";
+}
+
+$("config-export").onclick = () => setConfigStatus("Im Entwurf gibt es keine Mausdaten zum Exportieren.");
+$("config-import").onclick = () => $("config-file").click();
+$("config-file").onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (file) setConfigStatus(checkConfigFile(new Uint8Array(await file.arrayBuffer())));
+};
+
+renderLanguage();
+loadMacro(0);
+renderMacros();
+renderLight();
+renderKeys();
+renderSensor();
+renderStages();
+renderPolling();
+renderLod();
+renderDebounce();
+
+/* Echte Maus: only inside the app. Everything stays read-only until writing is built. */
+if (window.__TAURI__) {
+  const { invoke } = window.__TAURI__.core;
+  const { listen } = window.__TAURI__.event;
+
+  const KEY_ORDER = ["left", "right", "wheel", "back", "forward"];
+  const MOUSE_BUTTONS = { 0x0100: "Linksklick", 0x0200: "Rechtsklick", 0x0400: "Mausrad-Klick", 0x1000: "Vorwärts", 0x0800: "Zurück" };
+  const SCROLL = { 0x0100: "Nach links scrollen", 0x0200: "Nach rechts scrollen" };
+  const DPI_KEYS = { 0x0100: "DPI-Wechsel", 0x0200: "DPI +", 0x0300: "DPI -" };
+  const MEDIA = {
+    0x0183: "Mediaplayer", 0x00CD: "Wiedergabe/Pause", 0x00B5: "Nächster Titel", 0x00B6: "Vorheriger Titel", 0x00B7: "Stopp",
+    0x00E2: "Stumm", 0x00E9: "Lauter", 0x00EA: "Leiser", 0x018A: "E-Mail", 0x0192: "Rechner", 0x0194: "Arbeitsplatz",
+    0x0223: "Startseite", 0x0221: "Suche", 0x0225: "Nächste Seite", 0x0224: "Vorherige Seite", 0x0226: "Laden stoppen",
+    0x0227: "Seite neu laden", 0x022A: "Favoriten"
+  };
+  const LOD_LABELS = { 3: "0,7 mm", 1: "1 mm", 2: "2 mm" };
+  const TIME_LABELS = { 1: "10 s", 3: "30 s", 6: "1 Min.", 12: "2 Min.", 30: "5 Min.", 60: "10 Min.", 90: "15 Min." };
+  const MODIFIERS = { 1: "Strg links", 2: "Umschalt links", 4: "Alt", 8: "Win", 16: "Strg rechts", 32: "Umschalt rechts", 64: "Alt Gr", 128: "Win rechts" };
+  const MOUSE_EVENTS = { 1: "Linksklick", 2: "Rechtsklick", 4: "Mausrad-Klick", 16: "Vorwärts", 8: "Zurück" };
+  const USAGE_NAMES = { 40: "Enter", 41: "Esc", 42: "Rücktaste", 43: "Tab", 44: "Leertaste", 79: "Pfeil rechts", 80: "Pfeil links", 81: "Pfeil runter", 82: "Pfeil hoch" };
+
+  function usageName(usage) {
+    if (usage >= 4 && usage <= 29) return String.fromCharCode(61 + usage);
+    if (usage >= 30 && usage <= 38) return String(usage - 29);
+    if (usage === 39) return "0";
+    if (usage >= 58 && usage <= 69) return "F" + (usage - 57);
+    return USAGE_NAMES[usage] || "Taste " + usage;
+  }
+
+  function eventName(event) {
+    if (event.kind === 0) return MODIFIERS[event.value] || "Modifikator " + event.value;
+    if (event.kind === 4) return MOUSE_EVENTS[event.value] || "Maustaste " + event.value;
+    return usageName(event.value);
+  }
+
+  function describeKey(binding) {
+    switch (binding.kind) {
+      case 0: return { category: "disable", value: "Deaktiviert" };
+      case 1: return { category: "buttons", value: MOUSE_BUTTONS[binding.param] || "Maustaste" };
+      case 2: return { category: "dpi", value: DPI_KEYS[binding.param] || "DPI" };
+      case 3: return { category: "scroll", value: SCROLL[binding.param] || "Seitlich scrollen" };
+      case 4: return { category: "fire", value: "Dauerfeuer", data: { times: binding.param & 255, interval: binding.param >> 8 } };
+      case 5:
+        if (binding.media !== null && MEDIA[binding.media]) return { category: "media", value: MEDIA[binding.media] };
+        return { category: "combo", value: binding.combo.map(eventName).join(" + ") || "Tastenkombination", data: { keys: binding.combo } };
+      case 6: return { category: "macro", value: binding.macroName || "Makro" };
+      case 7: return { category: "polling", value: "Polling-Wechsel" };
+      default: return { category: "disable", value: "Unbekannt (" + binding.kind + ")" };
+    }
+  }
+
+  function setHasData(hasData) {
+    document.body.classList.toggle("no-data", !hasData);
+    if (!hasData) $("top-dpi").textContent = "";
+  }
+
+
+  const FIELD_BY_TOPIC = { lod: "Lod", debounce: "Debounce", ripple: "Ripple", angle: "Angle", motionSync: "MotionSync", performance: "Performance", performanceTime: "PerformanceTime", sleepTime: "Sleep" };
+  const invert = map => Object.fromEntries(Object.entries(map).map(([k, v]) => [v, Number(k)]));
+  const LOD_VALUES = invert(LOD_LABELS);
+  const TIME_VALUES = invert(TIME_LABELS);
+
+  const BUTTON_PARAMS = invert(MOUSE_BUTTONS);
+  const SCROLL_PARAMS = invert(SCROLL);
+  const DPI_PARAMS = invert(DPI_KEYS);
+  const MEDIA_CODES = invert(MEDIA);
+  const keyIndex = key => KEY_ORDER.indexOf(key.id);
+  const macroCommand = (key, macro) => ({
+    type: "setMacro",
+    key: keyIndex(key),
+    name: macro.name,
+    cycle: macro.cycle,
+    events: macro.events.map(e => ({ down: e.down, kind: e.kind, value: e.value, delay: e.delay }))
+  });
+
+  function keyCommand(key) {
+    const index = keyIndex(key);
+    const simple = (kind, param) => ({ type: "setKey", key: index, kind, param });
+    switch (key.category) {
+      case "disable": return simple(0, 0);
+      case "buttons": return simple(1, BUTTON_PARAMS[key.value]);
+      case "dpi": return simple(2, DPI_PARAMS[key.value]);
+      case "scroll": return simple(3, SCROLL_PARAMS[key.value]);
+      case "fire": return simple(4, (key.data.interval << 8) + key.data.times);
+      case "polling": return simple(7, 0);
+      case "media": return { type: "setMedia", key: index, code: MEDIA_CODES[key.value] };
+      case "combo": return { type: "setCombo", key: index, keys: key.data.keys };
+      case "macro": return macroCommand(key, macros.find(m => m.name === key.value));
+      default: throw new Error("Unbekannte Tastenfunktion");
+    }
+  }
+
+  function commandsFor(topic, target) {
+    if (topic === "profile") return [{ type: "setProfile", profile: target }];
+    if (topic === "key") return [keyCommand(target)];
+    if (topic === "clearMacro") return [{ type: "clearMacro", key: keyIndex(target) }];
+    if (topic === "macro") {
+      return keys.filter(k => k.category === "macro" && k.value === target.name).map(k => macroCommand(k, target));
+    }
+    return [commandFor(topic)];
+  }
+
+  function commandFor(topic) {
+    switch (topic) {
+      case "stages": return { type: "setStages", stages: state.stages.map(snapDpi), active: state.active };
+      case "polling": return { type: "setPolling", hz: state.polling };
+      case "longDistance": return { type: "setLongDistance", on: sensor.switches.longDistance };
+      case "light": return { type: "setLight", mode: light.mode, color: light.color.slice(), speed: light.speed - 1, brightness: light.brightness - 1 };
+      case "lod": return { type: "setField", field: FIELD_BY_TOPIC.lod, value: LOD_VALUES[state.lod] };
+      case "debounce": return { type: "setField", field: FIELD_BY_TOPIC.debounce, value: state.debounce };
+      case "performanceTime": return { type: "setField", field: FIELD_BY_TOPIC.performanceTime, value: TIME_VALUES[sensor.performanceTime] };
+      case "sleepTime": return { type: "setField", field: FIELD_BY_TOPIC.sleepTime, value: TIME_VALUES[sensor.sleepTime] };
+      case "performance": return { type: "setField", field: FIELD_BY_TOPIC.performance, value: sensor.performance ? 1 : 0 };
+      default: return { type: "setField", field: FIELD_BY_TOPIC[topic], value: sensor.switches[topic] ? 1 : 0 };
+    }
+  }
+
+  // Commands run one after the other. After a failure the screen goes back to what the mouse holds.
+  let queue = Promise.resolve();
+  const SEND_DELAY_MS = 500;
+  const pendingSends = new Map();
+  syncMouse = (topic, target) => {
+    clearTimeout(pendingSends.get(topic));
+    pendingSends.delete(topic);
+    const commands = commandsFor(topic, target);
+    queue = queue.then(async () => {
+      try {
+        for (const command of commands) await invoke("mouse_command", { command });
+        setConfigStatus("");
+      } catch (error) {
+        setConfigStatus(String(error));
+        applyMouse(await invoke("get_mouse_state"));
+      }
+    });
+  };
+
+  // Number fields change with every arrow key press, so they wait until the typing has stopped.
+  syncMouseLater = topic => {
+    clearTimeout(pendingSends.get(topic));
+    pendingSends.set(topic, setTimeout(() => {
+      syncMouse(topic);
+      // State updates were held back while waiting, so catch up on them.
+      queue = queue.then(() => invoke("get_mouse_state")).then(applyMouse).catch(error => setConfigStatus(String(error)));
+    }, SEND_DELAY_MS));
+  };
+
+  const flushPendingSends = () => [...pendingSends.keys()].forEach(topic => syncMouse(topic));
+
+  persistMacros = () => {
+    const text = JSON.stringify(macros);
+    queue = queue.then(() => invoke("save_macros", { text })).catch(error => setConfigStatus(String(error)));
+  };
+
+  persistProfileNames = () => {
+    const text = JSON.stringify(profileNames);
+    queue = queue.then(() => invoke("save_profile_names", { text })).catch(error => setConfigStatus(String(error)));
+  };
+
+  chooseProfile = index => {
+    // A value still waiting belongs to the old profile.
+    flushPendingSends();
+    profileDropdown.set(index);
+    setConfigStatus("Wechsle das Profil ...", true);
+    syncMouse("profile", index);
+  };
+  function showStatus(mouse) {
+    const dot = $("status-dot");
+    dot.className = "dot" + (!mouse.connected ? " off" : !mouse.online ? " idle" : "");
+    $("status-text").textContent = !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus inaktiv" : "Verbunden";
+    $("status-battery").textContent = mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "");
+    $("status-battery").title = mouse.batteryVoltage ? "Spannung " + mouse.batteryVoltage + " mV" : "";
+  }
+
+  function applyMouse(mouse) {
+    showStatus(mouse);
+    setHasData(mouse.hasData);
+    if (!mouse.hasData) return;
+    // A value waiting to be sent must not be overwritten by the older one from the mouse.
+    if (pendingSends.size || lightColorHeld) return;
+
+    state.stages = mouse.stages;
+    state.active = Math.min(mouse.activeStage, mouse.stages.length - 1);
+    state.polling = mouse.polling;
+    pollingLimit = { 1: 4000, 3: 8000, 4: 2000, 5: 8000 }[mouse.connection] || 1000;
+    state.debounce = mouse.debounce;
+    state.lod = LOD_LABELS[mouse.lod] || "";
+    sensor.switches = { ripple: mouse.ripple, angle: mouse.angle, motionSync: mouse.motionSync, longDistance: mouse.longDistance === true };
+    sensor.performance = mouse.performance;
+    sensor.performanceTime = TIME_LABELS[mouse.performanceTime] || "";
+    sensor.sleepTime = TIME_LABELS[mouse.sleepTime] || "";
+
+    KEY_ORDER.forEach((id, index) => {
+      if (mouse.keys[index]) Object.assign(keys.find(k => k.id === id), describeKey(mouse.keys[index]));
+    });
+    // The saved list stays the source; macros found only on the mouse join it.
+    let added = false;
+    for (const binding of mouse.keys) {
+      if (binding.kind !== 6 || !binding.macroName || macros.some(m => m.name === binding.macroName)) continue;
+      macros.push({
+        name: binding.macroName,
+        cycle: binding.param & 255,
+        events: binding.macroEvents.map(e => ({ down: e.down, key: eventName(e), kind: e.kind, value: e.value, delay: e.delay }))
+      });
+      added = true;
+    }
+    if (added) persistMacros();
+    const editingMacro = macroUi.dirty || macroUi.recording || macroUi.capture || macroUi.naming !== null;
+    if (!editingMacro) {
+      if (macroUi.selected >= macros.length) macroUi.selected = 0;
+      loadMacro(macroUi.selected);
+    }
+
+    if (mouse.light) {
+      light.mode = mouse.light.mode <= 5 ? mouse.light.mode : 0;
+      light.color = mouse.light.color.slice();
+      light.brightness = Math.min(10, mouse.light.brightness + 1);
+      light.speed = Math.min(10, mouse.light.speed + 1);
+    }
+    if (mouse.profile !== null && mouse.profile < PROFILE_COUNT) {
+      activeProfile = mouse.profile;
+      profileDropdown.set(mouse.profile);
+    }
+
+    openCategory = keys.find(k => k.id === selectedKey).category;
+    $("debounce").value = state.debounce;
+    renderKeys();
+    // Rebuilding the rows would throw the cursor out of a DPI field while it is in use.
+    if (document.activeElement.matches("#stages input[type=number]")) renderTopDpi();
+    else renderStages();
+    renderPolling();
+    renderLod();
+    renderDebounce();
+    renderSensor();
+    renderLight();
+    if (!editingMacro) renderMacros();
+  }
+
+  $("config-export").onclick = async () => {
+    try {
+      flushPendingSends();
+      await queue;
+      const path = await invoke("export_config", { name: profileLabel(activeProfile, "-") });
+      if (path) setConfigStatus("Gespeichert: " + fileNameOf(path));
+    } catch (error) {
+      setConfigStatus(String(error));
+    }
+  };
+
+  /* Tray-Symbol */
+  const TRAY_LEVELS = ["low", "mid", "high"];
+  function showTraySettings(settings) {
+    $("tray-low").value = settings.lowBelow;
+    $("tray-mid").value = settings.midBelow;
+    TRAY_LEVELS.forEach(level => {
+      $(`tray-${level}-color`).value = settings[level + "Color"];
+      $(`tray-${level}-preview`).style.background = settings[level + "Color"];
+    });
+  }
+  function readTraySettings() {
+    return {
+      lowBelow: Number($("tray-low").value),
+      midBelow: Number($("tray-mid").value),
+      lowColor: $("tray-low-color").value,
+      midColor: $("tray-mid-color").value,
+      highColor: $("tray-high-color").value
+    };
+  }
+  async function saveTraySettings() {
+    const settings = readTraySettings();
+    TRAY_LEVELS.forEach(level => { $(`tray-${level}-preview`).style.background = settings[level + "Color"]; });
+    try {
+      await invoke("save_tray_settings", { settings });
+      $("tray-status").textContent = "";
+    } catch (error) {
+      $("tray-status").textContent = String(error);
+    }
+  }
+  ["tray-low", "tray-mid", ...TRAY_LEVELS.map(level => `tray-${level}-color`)].forEach(id => { $(id).onchange = saveTraySettings; });
+  invoke("get_tray_settings").then(showTraySettings);
+
+  // The file is the truth, because the tray needs it too. The first start follows Windows.
+  saveLanguage = language => { invoke("set_language", { language }).catch(error => setConfigStatus(String(error))); };
+  invoke("get_version").then(version => { $("app-version").textContent = "H-Mouse Config " + version; });
+  invoke("get_language").then(saved => {
+    if (saved && saved !== appLanguage.get()) {
+      appLanguage.set(saved);
+      renderLanguage();
+    }
+    if (!saved) saveLanguage(appLanguage.get());
+  });
+
+  const showAutostart = on => $("autostart-switch").setAttribute("aria-checked", String(on));
+  $("autostart-switch").onclick = async () => {
+    const wanted = $("autostart-switch").getAttribute("aria-checked") !== "true";
+    try {
+      showAutostart(await invoke("set_autostart", { on: wanted }));
+    } catch (error) {
+      setConfigStatus(String(error));
+    }
+  };
+  invoke("get_autostart").then(showAutostart).catch(error => setConfigStatus(String(error)));
+
+  $("config-import").onclick = async () => {
+    $("config-import").disabled = true;
+    setConfigStatus("Importiere ...", true);
+    try {
+      flushPendingSends();
+      await queue;
+      const path = await invoke("import_config");
+      setConfigStatus(path ? "Importiert: " + fileNameOf(path) : "");
+    } catch (error) {
+      setConfigStatus(String(error));
+    } finally {
+      $("config-import").disabled = false;
+    }
+  };
+
+  setHasData(false);
+  $("status-text").textContent = "Suche Maus";
+  $("status-battery").textContent = "";
+  invoke("load_profile_names").then(text => {
+    if (!text) return;
+    const names = JSON.parse(text);
+    if (!Array.isArray(names)) throw new Error();
+    profileNames = profileNames.map((_, i) => typeof names[i] === "string" ? names[i] : "");
+    profileDropdown.setLabels(profileLabel);
+  }).catch(() => setConfigStatus("Die gespeicherten Profilnamen sind beschädigt."));
+  macros.length = 0;
+  loadMacro(0);
+  renderMacros();
+  invoke("load_macros").then(text => {
+    if (!text) return;
+    try {
+      macros.push(...JSON.parse(text));
+    } catch (error) {
+      setConfigStatus("Die gespeicherte Makroliste ist beschädigt.");
+    }
+  }).catch(error => setConfigStatus(String(error))).finally(() => {
+    loadMacro(0);
+    renderMacros();
+    listen("mouse-state", event => applyMouse(event.payload));
+    invoke("get_mouse_state").then(applyMouse);
+  });
+}
+</script>
+</body>
+</html>
