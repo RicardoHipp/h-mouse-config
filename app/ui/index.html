@@ -104,7 +104,7 @@ button { cursor: pointer; }
 .light { display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 220px); gap: 22px; align-items: center; padding: 14px 18px; }
 .receiver { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .receiver img { display: block; width: 104px; height: auto; }
-.receiver-led { width: 72px; height: 4px; border-radius: 2px; transition: background .15s, opacity .15s, box-shadow .15s; }
+.receiver-led { position: relative; overflow: hidden; width: 96px; height: 10px; border-radius: 5px; transition: background .15s, box-shadow .15s; }
 .receiver h2 { margin: 0; font-size: 14px; color: var(--ink-strong); text-align: center; }
 .light-controls { display: grid; gap: 8px; min-width: 0; }
 .light-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -565,10 +565,27 @@ h1, h2, .brand, .nav-tools-title { font-family: "Caveat", "Segoe Print", cursive
 }
 .light-rgb { display: grid; gap: 6px; }
 .light-rgb .rgb { justify-content: flex-end; gap: 6px; }
-.receiver-led { height: 10px; border-radius: 5px; }
 .presets { display: grid; grid-template-columns: repeat(2, 20px); gap: 3px 6px; }
-.light-sv { position: relative; flex: 1 1 200px; max-width: 320px; height: 112px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); cursor: crosshair; touch-action: none; }
-.light-sv-knob { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid var(--ink); border-radius: 8px 6px 9px 5px / 6px 9px 5px 8px; box-shadow: 0 0 0 1.5px #fff; pointer-events: none; }
+.light-spectrum { display: flex; flex: 1 1 218px; gap: 4px; min-width: 0; max-width: 338px; height: 112px; }
+.light-sv { position: relative; isolation: isolate; flex: 1 1 auto; min-width: 0; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background-clip: padding-box; cursor: crosshair; touch-action: none; }
+.light-hue-box { position: relative; isolation: isolate; display: flex; flex: none; border-radius: 6px; background: linear-gradient(180deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+/* At rest the colours are drawn as a pen hatching, like a black and white picture in the app's blue: the darker the colour, the denser the strokes. Over the card the real colours appear. */
+svg.ink-veil { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
+.ink-paper { fill: var(--paper); transition: opacity var(--ink-sweep) linear var(--ink-delay); }
+.ink-hatch { fill: none; stroke: var(--ink); stroke-width: .9; stroke-linecap: round; stroke-dasharray: 1 2; stroke-dashoffset: 0; transition: stroke-dashoffset .28s ease-out var(--ink-delay); }
+/* Leaving the card draws the hatching stroke by stroke; coming back shows the colours at once and rubs the strokes out unseen. */
+.light:is(:hover, :active, :has(:focus-visible)) {
+  .ink-veil:not(fieldset:disabled *, .receiver-led.off *) { opacity: 0; transition: opacity .18s; }
+  .ink-paper:not(fieldset:disabled *, .receiver-led.off *) { opacity: 0; transition: opacity 0s .18s; }
+  .ink-hatch:not(fieldset:disabled *, .receiver-led.off *) { stroke-dashoffset: 1.02; transition: stroke-dashoffset 0s .18s; }
+}
+.light:not(:hover, :active, :has(:focus-visible)) {
+  .receiver-led { box-shadow: none !important; }
+  .light-sv-knob { background: var(--paper) !important; transition: background-color .3s 1s; }
+}
+fieldset:disabled .light-sv-knob { background: var(--paper) !important; }
+@media (prefers-reduced-motion: reduce) { .ink-veil, .ink-paper, .ink-hatch, .light-sv-knob { transition: none !important; } }
+.light-sv-knob { position: absolute; z-index: 2; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid var(--ink); border-radius: 8px 6px 9px 5px / 6px 9px 5px 8px; box-shadow: 0 0 0 1.5px #fff; pointer-events: none; }
 fieldset:disabled .light-sv { pointer-events: none; }
 .light-label, .rgb { font-size: 15px; }
 .light-slider div { font-size: 15px; font-weight: 400; }
@@ -577,24 +594,25 @@ input[type="range"].hue {
   writing-mode: vertical-lr;
   flex: none;
   width: 14px;
-  height: 112px;
-  margin-left: -14px;
+  height: auto;
+  position: relative;
+  z-index: 2;
   border: 1.5px solid var(--ink);
-  opacity: .9;
-  background: linear-gradient(180deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  background: none;
 }
 .hue::-webkit-slider-thumb { border: 2px solid var(--ink); background: var(--page); box-shadow: none; }
 /* Side by side, the settings and the colours end on the same top and bottom line. */
 @media (min-width: 861px) {
   .light-settings, .light-color { align-self: stretch; }
   .light-settings { align-content: space-between; }
-  .light-sv, input[type="range"].hue, .presets { align-self: stretch; height: auto; }
+  .light-spectrum, .presets { align-self: stretch; height: auto; }
   .presets { align-content: space-between; }
 }
 .preset { border: 0; border-radius: 0; background: none; }
 .preset svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .preset path { stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round; }
 .preset:hover path { stroke-width: 2.2; }
+.preset path.ink-hatch { stroke-width: .8; }
 
 /* Eingaben */
 .rgb input, .number input, .event-table input, .macro-option input[type="number"], .field input, .name-input, .profile-name {
@@ -723,7 +741,7 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
           <div class="card light">
             <div class="receiver">
               <img src="receiver.png" alt="Empfänger" draggable="false">
-              <div class="receiver-led" id="receiver-led"></div>
+              <div class="receiver-led" id="receiver-led"><svg class="ink-veil" id="receiver-led-veil" aria-hidden="true"></svg></div>
               <h2>Empfänger-Licht</h2>
             </div>
             <div class="light-settings">
@@ -743,8 +761,10 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
               </div>
             </div>
             <fieldset id="light-color" class="light-color">
-              <div class="light-sv" id="light-sv" role="slider" tabindex="0" aria-label="Sättigung und Helligkeit der Farbe"><span class="light-sv-knob" id="light-sv-knob"></span></div>
-              <input type="range" class="hue" id="light-hue" min="0" max="360" aria-label="Farbton">
+              <div class="light-spectrum">
+                <div class="light-sv" id="light-sv" role="slider" tabindex="0" aria-label="Sättigung und Helligkeit der Farbe"><svg class="ink-veil" id="light-sv-veil" aria-hidden="true"></svg><span class="light-sv-knob" id="light-sv-knob"></span></div>
+                <div class="light-hue-box" id="light-hue-box"><svg class="ink-veil" id="light-hue-veil" aria-hidden="true"></svg><input type="range" class="hue" id="light-hue" min="0" max="360" aria-label="Farbton"></div>
+              </div>
               <div class="light-rgb">
                 <label class="rgb">R <input type="number" id="light-r" min="0" max="255"></label>
                 <label class="rgb">G <input type="number" id="light-g" min="0" max="255"></label>
@@ -1950,6 +1970,77 @@ function hsvToRgb(hue, saturation, brightness) {
   return [f(5), f(3), f(1)];
 }
 
+function colorDarkness([r, g, b]) {
+  return 1 - (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+// The hatching draws itself in this order when the mouse leaves the card (start and length in seconds).
+const INK_LED = [0, .8], INK_FIELD = [.4, .9], INK_HUE = [1.1, .9], INK_PRESETS = [1.8, .08];
+function inkStroke(path, delay) {
+  return `<path class="ink-hatch" pathLength="1" d="${path}" data-ink-delay="${delay.toFixed(2)}s"/>`;
+}
+function inkPaper([start, sweep]) {
+  return `data-ink-delay="${start}s" data-ink-sweep="${sweep}s"`;
+}
+// The app's content security policy blocks style attributes in generated markup, so the times are set from here.
+function applyInkTiming(root) {
+  root.querySelectorAll("[data-ink-delay]").forEach(node => {
+    node.style.setProperty("--ink-delay", node.dataset.inkDelay);
+    if (node.dataset.inkSweep) node.style.setProperty("--ink-sweep", node.dataset.inkSweep);
+  });
+}
+function presetHatch(darkness, start) {
+  if (darkness < .05) return "";
+  const spacing = 1.5 + (1 - darkness) * 5;
+  let strokes = "";
+  for (let y = 0; y <= 20; y += spacing) strokes += inkStroke(`M-6 ${y.toFixed(1)}L26 ${y.toFixed(1)}`, start + y * .005);
+  return strokes;
+}
+/* Pen strokes across a box: each line only runs where the picture is dark enough for it, and the darkest parts get cross strokes on top. */
+function inkHatch(width, height, darkness, [start, sweep]) {
+  let result = "";
+  const wobble = (line, along) => (Math.abs(Math.sin(line * 12.9898 + along * 78.233) * 43758.5453) % 1 - .5) * .7;
+  const strokes = (spacing, limits, rising, from, share) => {
+    for (let c = 0, line = 0; c < width + height; c += spacing, line++) {
+      const limit = limits[line % limits.length];
+      let path = "", first = 0;
+      const finish = () => {
+        if (path.includes("L")) result += inkStroke(path, start + sweep * (from + share * first / (width + height)));
+        path = "";
+      };
+      // The last point may lie past the right edge, so the stroke reaches it; the picture cuts off the rest.
+      for (let x = 0; x <= width + 4; x += 4) {
+        const y = rising ? c - x : x + height - c;
+        const inside = y >= -4 && y <= height + 4;
+        if (inside && darkness(Math.min(x, width) / width, Math.min(Math.max(y, 0), height) / height) >= limit) {
+          if (!path) first = x + Math.max(y, 0);
+          path += `${path ? "L" : "M"}${(x + wobble(line, x)).toFixed(1)} ${(y + wobble(x, line)).toFixed(1)}`;
+        } else finish();
+      }
+      finish();
+    }
+  };
+  strokes(3, [.06, .5, .28, .68], true, 0, .75);
+  strokes(6, [.8, .9], false, .75, .25);
+  return result;
+}
+function drawInkVeil(veil, key, timing, darkness) {
+  const { clientWidth: width, clientHeight: height } = veil.parentElement;
+  const fullKey = `${key}|${width}|${height}`;
+  if (!width || veil.dataset.key === fullKey) return;
+  veil.dataset.key = fullKey;
+  veil.innerHTML = `<rect class="ink-paper" width="100%" height="100%" ${inkPaper(timing)}/>${inkHatch(width, height, darkness, timing)}`;
+  applyInkTiming(veil);
+}
+function drawInkVeils() {
+  // The veils are hidden during a drag; the release draws them once.
+  if (lightColorHeld) return;
+  drawInkVeil($("light-sv-veil"), lightHue, INK_FIELD, (x, y) => colorDarkness(hsvToRgb(lightHue, x, 1 - y)));
+  drawInkVeil($("light-hue-veil"), "", INK_HUE, (x, y) => colorDarkness(hueToRgb(y * 360)));
+  const mode = LIGHT_MODES[light.mode];
+  const led = mode.value === 0 ? .1 : mode.color ? colorDarkness(light.color) : .5;
+  drawInkVeil($("receiver-led-veil"), led, INK_LED, () => led);
+}
+
 function renderLight() {
   const mode = LIGHT_MODES[light.mode];
   const hex = toHex(light.color);
@@ -1961,7 +2052,7 @@ function renderLight() {
   if (!lightColorHeld && Math.max(...light.color) - Math.min(...light.color) >= MIN_HUE_SPREAD) lightHue = rgbToHue(light.color);
   $("light-hue").value = lightHue;
   const [saturation, brightness] = rgbToSv(light.color);
-  $("light-sv").style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${lightHue} 100% 50%))`;
+  $("light-sv").style.backgroundImage = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${lightHue} 100% 50%))`;
   $("light-sv-knob").style.left = saturation * 100 + "%";
   $("light-sv-knob").style.top = (1 - brightness) * 100 + "%";
   $("light-sv-knob").style.background = hex;
@@ -1972,13 +2063,30 @@ function renderLight() {
   $("light-speed").value = light.speed;
   $("light-speed-value").textContent = light.speed;
 
-  // Sample preview only: a small light bar in the chosen colour, stronger with higher brightness.
+  // Sample preview only: a small light bar in the chosen colour, with a wider glow at higher brightness.
   const led = $("receiver-led");
   const ledColor = mode.color ? hex : "linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)";
+  // A switched off light has no colour to show, so its hatching stays over the card as well.
+  led.classList.toggle("off", mode.value === 0);
   led.style.background = mode.value === 0 ? "var(--ink-line)" : ledColor;
-  led.style.opacity = mode.value === 0 ? 1 : 0.35 + light.brightness * 0.065;
   led.style.boxShadow = mode.value !== 0 && mode.color ? "0 0 " + (2 + light.brightness) + "px " + hex : "none";
+  drawInkVeils();
 }
+// While the window is being resized the old strokes stay; only the first picture is drawn at once.
+let inkResizeTimer;
+new ResizeObserver(() => {
+  clearTimeout(inkResizeTimer);
+  if ($("light-sv-veil").firstChild) inkResizeTimer = setTimeout(drawInkVeils, 150);
+  else drawInkVeils();
+}).observe($("light-sv"));
+["pointerup", "pointercancel"].forEach(type => window.addEventListener(type, () => {
+  lightColorHeld = false;
+  drawInkVeils();
+}));
+// A clicked number field would keep the colours showing after the mouse has left.
+document.querySelector(".light").onpointerleave = () => {
+  if (document.activeElement.matches(".light input[type=number]")) document.activeElement.blur();
+};
 
 function setLightColor(rgb) {
   light.color = rgb;
@@ -1994,6 +2102,7 @@ $("light-hue").oninput = e => {
 };
 $("light-hue").onchange = () => {
   lightColorHeld = false;
+  drawInkVeils();
   syncMouse("light");
 };
 
@@ -2041,7 +2150,14 @@ $("light-sv").onkeydown = event => {
 });
 $("light-presets").append(...PRESET_COLORS.map((rgb, index) => {
   const button = el("button", { className: "preset", title: toHex(rgb) });
-  button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="${PRESET_CIRCLE}" fill="${toHex(rgb)}" transform="rotate(${index * 67} 10 10)"/></svg>`;
+  const turn = `rotate(${index * 67} 10 10)`;
+  const inkStart = INK_PRESETS[0] + index * INK_PRESETS[1];
+  // Every colour has its own stroke direction, so colours of equal darkness still look different.
+  button.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="${PRESET_CIRCLE}" fill="${toHex(rgb)}" transform="${turn}"/>`
+    + `<g class="ink-veil"><clipPath id="preset-clip-${index}"><path d="${PRESET_CIRCLE}" transform="${turn}"/></clipPath>`
+    + `<path class="ink-paper" d="${PRESET_CIRCLE}" transform="${turn}" ${inkPaper([inkStart, .15])}/>`
+    + `<g clip-path="url(#preset-clip-${index})"><g transform="rotate(${index * 36} 10 10)">${presetHatch(colorDarkness(rgb), inkStart)}</g></g></g></svg>`;
+  applyInkTiming(button);
   button.setAttribute("aria-label", "Farbe " + toHex(rgb));
   button.onclick = () => { setLightColor(rgb.slice()); syncMouse("light"); };
   return button;
