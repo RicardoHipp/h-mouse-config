@@ -81,6 +81,8 @@ button { cursor: pointer; }
 .language-flag .flag-fill { fill: var(--ink); }
 .language-flag .flag-cross { stroke-width: 3; stroke-linecap: butt; }
 .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* In a narrow window the battery line takes two rows instead of pushing the bar out of the window. */
+#status-battery { flex: 0 1 auto; min-width: 0; line-height: 1.15; white-space: normal; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #2c9b62; }
 .dot.idle { background: #d8a200; }
 .dot.off { background: var(--danger); }
@@ -2456,8 +2458,9 @@ if (window.__TAURI__) {
     const dot = $("status-dot");
     dot.className = "dot" + (!mouse.connected ? " off" : !mouse.online ? " idle" : "");
     $("status-text").textContent = !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus inaktiv" : "Verbunden";
-    $("status-battery").textContent = mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "");
-    $("status-battery").title = mouse.batteryVoltage ? "Spannung " + mouse.batteryVoltage + " mV" : "";
+    // Non-breaking spaces, so that a narrow window breaks the line only before the part from the mouse.
+    const reported = mouse.batteryRaw === null ? "" : " · Maus " + mouse.batteryRaw + " %" + (mouse.batteryVoltage ? ", " + mouse.batteryVoltage + " mV" : "");
+    $("status-battery").textContent = mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "") + reported;
   }
 
   function applyMouse(mouse) {

@@ -123,7 +123,6 @@ const BATTERY_CURVE: [(u32, u32); 21] = [
     (3085, 0), (3438, 5), (3493, 10), (3551, 15), (3620, 20), (3676, 25), (3744, 30), (3768, 35), (3819, 40), (3856, 45), (3902, 50),
     (3944, 55), (3957, 60), (3973, 65), (3994, 70), (4015, 75), (4036, 80), (4053, 85), (4076, 90), (4124, 95), (4174, 100),
 ];
-const BATTERY_CATCH_UP_GAP: u8 = 10;
 
 const FOOTER_LEN: usize = 64;
 const FOOTER_VENDOR: &[u8] = b"Compx Inc";
@@ -211,6 +210,7 @@ pub struct MouseState {
     pub connection: u8,
     pub profile: Option<u8>,
     pub battery: Option<u8>,
+    pub battery_raw: Option<u8>,
     pub charging: bool,
     pub battery_voltage: Option<u32>,
     pub firmware: Option<String>,
@@ -351,14 +351,14 @@ fn voltage_to_level(voltage: u32, charging: bool) -> u8 {
     (low_level as f64 + share * (high_level - low_level) as f64).round() as u8
 }
 
-/// Voltage sags under load, so the shown value only moves in one step per reading:
-/// down while discharging, and up while charging once it lags clearly behind.
+/// Voltage sags under load and jumps when the cable is plugged in, so the shown value only moves
+/// one step per reading. Measured charging is about 1 % per minute, which is one reading.
 fn next_battery_display(previous: Option<u8>, target: u8, raw_level: u8, charging: bool) -> u8 {
     let Some(shown) = previous else { return target };
     if charging {
         if raw_level == 100 {
             100
-        } else if target > shown && target - shown > BATTERY_CATCH_UP_GAP {
+        } else if target > shown {
             shown + 1
         } else {
             shown
@@ -1049,6 +1049,7 @@ impl Worker {
             self.battery_display = Some(shown);
             self.update(|state| {
                 state.battery = Some(shown);
+                state.battery_raw = Some(reply[5]);
                 state.charging = charging;
                 state.battery_voltage = (voltage > 0).then_some(voltage);
             });
@@ -1363,8 +1364,9 @@ mod tests {
         assert_eq!(next_battery_display(None, 60, 50, false), 60);
         assert_eq!(next_battery_display(Some(60), 50, 50, false), 59);
         assert_eq!(next_battery_display(Some(60), 70, 50, false), 60);
-        assert_eq!(next_battery_display(Some(60), 65, 50, true), 60);
-        assert_eq!(next_battery_display(Some(60), 80, 50, true), 61);
+        assert_eq!(next_battery_display(Some(60), 60, 50, true), 60);
+        assert_eq!(next_battery_display(Some(60), 61, 50, true), 61);
+        assert_eq!(next_battery_display(Some(44), 64, 50, true), 45);
         assert_eq!(next_battery_display(Some(90), 95, 100, true), 100);
     }
 

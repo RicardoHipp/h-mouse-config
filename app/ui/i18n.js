@@ -76,8 +76,7 @@
 
   const PATTERNS = [
     [/^Profil (\d+)( – .*)?$/, "Profile $1$2"],
-    [/^Akku (\d+) %( \(lädt\))?$/, (_, level, charging) => `Battery ${level} %${charging ? " (charging)" : ""}`],
-    [/^Spannung (\d+) mV$/, "Voltage $1 mV"],
+    [/^Akku (\d+) %( \(lädt\))?(?: · Maus (\d+) %(, \d+ mV)?)?$/, (_, level, charging, reported, voltage) => `Battery ${level} %${charging ? " (charging)" : ""}${reported ? ` · Mouse ${reported} %${voltage || ""}` : ""}`],
     [/^(\d+) Min\.$/, "$1 min"],
     [/^(\d+),(\d+) mm$/, "$1.$2 mm"],
     [/^Stufe (\d+)$/, "Stage $1"],
