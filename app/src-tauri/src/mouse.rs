@@ -117,8 +117,9 @@ const ONLINE_CHECK: Duration = Duration::from_secs(30);
 const OFFLINE_CHECK: Duration = Duration::from_secs(3);
 const BATTERY_CHECK: Duration = Duration::from_secs(60);
 
-/// Rough discharge curve of a lithium cell as (millivolts, percent), until our own measurement replaces it.
-const BATTERY_CURVE: [(u32, u32); 6] = [(3300, 0), (3600, 10), (3700, 25), (3800, 50), (3950, 75), (4100, 100)];
+/// Discharge curve as (millivolts, percent): the median voltage per level byte of the mouse over one discharge.
+/// That measurement ended at 20 %, so the step down to 3300 mV is an assumption.
+const BATTERY_CURVE: [(u32, u32); 10] = [(3300, 0), (3612, 20), (3708, 30), (3808, 40), (3877, 50), (3946, 60), (3984, 70), (4030, 80), (4063, 90), (4164, 100)];
 const BATTERY_CATCH_UP_GAP: u8 = 10;
 
 const FOOTER_LEN: usize = 64;
@@ -1343,9 +1344,12 @@ mod tests {
     fn battery_level_follows_the_voltage_curve() {
         assert_eq!(voltage_to_level(3000, false), 0);
         assert_eq!(voltage_to_level(3300, false), 0);
-        assert_eq!(voltage_to_level(3800, false), 50);
-        assert_eq!(voltage_to_level(3875, false), 63);
-        assert_eq!(voltage_to_level(4100, false), 100);
+        assert_eq!(voltage_to_level(3456, false), 10);
+        assert_eq!(voltage_to_level(3612, false), 20);
+        assert_eq!(voltage_to_level(3800, false), 39);
+        assert_eq!(voltage_to_level(3875, false), 50);
+        assert_eq!(voltage_to_level(4100, false), 94);
+        assert_eq!(voltage_to_level(4164, false), 100);
         assert_eq!(voltage_to_level(4200, false), 100);
         assert_eq!(voltage_to_level(4200, true), 99);
     }

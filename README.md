@@ -28,8 +28,8 @@ mouse, and nothing here is tested or endorsed by the manufacturer.
 
 Firmware updates are deliberately not included.
 
-The battery percentage is an estimate from a rough general lithium cell curve,
-so it can differ from the real charge.
+The battery percentage is an estimate from a voltage curve fitted to the level the
+mouse itself reports. Below 20 % it is unmeasured, so it can differ from the real charge.
 
 ## Download
 
