@@ -117,9 +117,12 @@ const ONLINE_CHECK: Duration = Duration::from_secs(30);
 const OFFLINE_CHECK: Duration = Duration::from_secs(3);
 const BATTERY_CHECK: Duration = Duration::from_secs(60);
 
-/// Discharge curve as (millivolts, percent): the median voltage per level byte of the mouse over one discharge.
-/// That measurement ended at 20 %, so the step down to 3300 mV is an assumption.
-const BATTERY_CURVE: [(u32, u32); 10] = [(3300, 0), (3612, 20), (3708, 30), (3808, 40), (3877, 50), (3946, 60), (3984, 70), (4030, 80), (4063, 90), (4164, 100)];
+/// Discharge curve as (millivolts, percent), measured over one full discharge: the voltage at which the level byte
+/// of the mouse changes to that step. 100 % is the voltage right after charging, 0 % is where the mouse switched off.
+const BATTERY_CURVE: [(u32, u32); 21] = [
+    (3085, 0), (3438, 5), (3493, 10), (3551, 15), (3620, 20), (3676, 25), (3744, 30), (3768, 35), (3819, 40), (3856, 45), (3902, 50),
+    (3944, 55), (3957, 60), (3973, 65), (3994, 70), (4015, 75), (4036, 80), (4053, 85), (4076, 90), (4124, 95), (4174, 100),
+];
 const BATTERY_CATCH_UP_GAP: u8 = 10;
 
 const FOOTER_LEN: usize = 64;
@@ -1343,13 +1346,14 @@ mod tests {
     #[test]
     fn battery_level_follows_the_voltage_curve() {
         assert_eq!(voltage_to_level(3000, false), 0);
-        assert_eq!(voltage_to_level(3300, false), 0);
-        assert_eq!(voltage_to_level(3456, false), 10);
-        assert_eq!(voltage_to_level(3612, false), 20);
-        assert_eq!(voltage_to_level(3800, false), 39);
-        assert_eq!(voltage_to_level(3875, false), 50);
-        assert_eq!(voltage_to_level(4100, false), 94);
-        assert_eq!(voltage_to_level(4164, false), 100);
+        assert_eq!(voltage_to_level(3085, false), 0);
+        assert_eq!(voltage_to_level(3300, false), 3);
+        assert_eq!(voltage_to_level(3438, false), 5);
+        assert_eq!(voltage_to_level(3620, false), 20);
+        assert_eq!(voltage_to_level(3800, false), 38);
+        assert_eq!(voltage_to_level(3875, false), 47);
+        assert_eq!(voltage_to_level(4124, false), 95);
+        assert_eq!(voltage_to_level(4174, false), 100);
         assert_eq!(voltage_to_level(4200, false), 100);
         assert_eq!(voltage_to_level(4200, true), 99);
     }
