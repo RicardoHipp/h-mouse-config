@@ -115,6 +115,18 @@ fn profile_label(labels: &[String], profile: usize, english: bool) -> String {
     }
 }
 
+/// Whether the app speaks English, for texts made outside the page.
+pub fn english(app: &AppHandle) -> bool {
+    app.try_state::<TrayHandle>().is_some_and(|handle| handle.0.lock().unwrap().english)
+}
+
+/// Number and own name of a profile as the tray menu shows them, for the overlay.
+pub fn profile_text(app: &AppHandle, profile: u8) -> String {
+    let Some(handle) = app.try_state::<TrayHandle>() else { return profile_label(&[], profile as usize, false) };
+    let tray = handle.0.lock().unwrap();
+    profile_label(&tray.labels, profile as usize, tray.english)
+}
+
 fn tooltip(state: &MouseState, bluetooth: Option<&BluetoothState>, labels: &[String], english: bool) -> String {
     let say = |german: &'static str, translated: &'static str| if english { translated } else { german };
     if let Some(bluetooth) = bluetooth {
@@ -144,7 +156,7 @@ fn tooltip(state: &MouseState, bluetooth: Option<&BluetoothState>, labels: &[Str
     parts.join(", ")
 }
 
-fn tray_font() -> Option<&'static FontVec> {
+pub fn tray_font() -> Option<&'static FontVec> {
     static FONT: OnceLock<Option<FontVec>> = OnceLock::new();
     FONT.get_or_init(|| FontVec::try_from_vec(std::fs::read(FONT_PATH).ok()?).ok()).as_ref()
 }

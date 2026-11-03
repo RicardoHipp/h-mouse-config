@@ -91,6 +91,9 @@ const KEY_TYPE_FIRE: u8 = 4;
 const KEY_TYPE_SHORTCUT: u8 = 5;
 const KEY_TYPE_MACRO: u8 = 6;
 const KEY_TYPE_POLLING: u8 = 7;
+// Not offered by the vendor tool for this mouse, but known to its firmware.
+const KEY_TYPE_PROFILE: u8 = 9;
+const KEY_TYPE_DPI_LOCK: u8 = 10;
 const LEFT_CLICK: u16 = 0x0100;
 const DEFAULT_KEYS: [u16; KEY_COUNT] = [LEFT_CLICK, 0x0200, 0x0400, 0x0800, 0x1000];
 const MEDIA_CODES: [u16; 18] = [
@@ -113,7 +116,8 @@ const ATTEMPTS: usize = 5;
 const REPLY_TIMEOUT: Duration = Duration::from_millis(200);
 const IDLE_READ_MS: i32 = 200;
 const RECONNECT_DELAY: Duration = Duration::from_secs(3);
-const ONLINE_CHECK: Duration = Duration::from_secs(30);
+// Often enough that the page locks soon after the mouse falls asleep.
+const ONLINE_CHECK: Duration = Duration::from_secs(5);
 const OFFLINE_CHECK: Duration = Duration::from_secs(3);
 /// After a cable or Bluetooth change the receiver still reports the mouse for a few seconds,
 /// so it is asked every second for this long.
@@ -184,12 +188,16 @@ pub enum MouseCommand {
     SetLongDistance { on: bool },
     SetLight { mode: u8, color: [u8; 3], speed: u8, brightness: u8 },
     SetKey { key: u8, kind: u8, param: u16 },
+    /// The same simple key function in every profile, for example a profile switch that has to work in each.
+    SetKeyAllProfiles { key: u8, kind: u8, param: u16 },
     SetMedia { key: u8, code: u16 },
     SetCombo { key: u8, keys: Vec<HidKey> },
     SetMacro { key: u8, name: String, cycle: u8, events: Vec<MacroEvent> },
     ClearMacro { key: u8 },
     ImportConfig { bytes: Vec<u8> },
     SetProfile { profile: u8 },
+    /// Copies the active profile into the given ones. Profile names live in the app and stay.
+    CopyProfile { targets: Vec<u8> },
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -395,7 +403,9 @@ fn key_entry(kind: u8, param: u16) -> [u8; 4] {
 
 fn validate_key(kind: u8, param: u16) -> Result<(), String> {
     let valid = match kind {
-        KEY_TYPE_DISABLED | KEY_TYPE_POLLING => param == 0,
+        KEY_TYPE_DISABLED | KEY_TYPE_POLLING | KEY_TYPE_PROFILE => param == 0,
+        // The DPI while the key is held, stored as it is.
+        KEY_TYPE_DPI_LOCK => valid_dpi(param as u32),
         KEY_TYPE_MOUSE => DEFAULT_KEYS.contains(&param),
         KEY_TYPE_DPI => [0x0100, 0x0200, 0x0300].contains(&param),
         KEY_TYPE_SCROLL => [0x0100, 0x0200].contains(&param),
@@ -722,6 +732,33 @@ impl Worker {
         self.write_flash(device, ADDR_KEYS + 4 * key, &key_entry(kind, param))
     }
 
+    /// Each profile keeps its own buttons, and the mouse writes only into the active one. So this visits
+    /// every profile, starting with the active one, and comes back to it at the end.
+    fn write_key_everywhere(&mut self, device: &HidDevice, key: usize, kind: u8, param: u16) -> Result<Result<(), String>, DeviceGone> {
+        let start = self.shared.lock().unwrap().state.profile.unwrap_or(0);
+        let mut missed = Vec::new();
+        for profile in (0..PROFILE_COUNT).map(|step| (start + step) % PROFILE_COUNT) {
+            let result = match profile == start {
+                true => self.write_key(device, key, kind, param)?,
+                false => match self.set_profile(device, profile)? {
+                    Ok(()) => self.write_key(device, key, kind, param)?,
+                    Err(message) => Err(message),
+                },
+            };
+            if let Err(message) = result {
+                missed.push(format!("Profil {} ({message})", profile + 1));
+            }
+        }
+        if let Err(message) = self.set_profile(device, start)? {
+            return Ok(Err(message));
+        }
+        if missed.is_empty() {
+            Ok(Ok(()))
+        } else {
+            Ok(Err(format!("Nicht in allen Profilen übernommen: {}", missed.join(", "))))
+        }
+    }
+
     fn write_shortcut_key(&mut self, device: &HidDevice, key: usize, data: &[u8]) -> Result<Result<(), String>, DeviceGone> {
         if key >= KEY_COUNT {
             return Ok(Err("Unbekannte Taste.".to_string()));
@@ -780,6 +817,52 @@ impl Worker {
         self.write_flash(device, 0, &flash[..SETTINGS_READ_END])
     }
 
+    /// Writes a profile read from the mouse into the active one. Only the shortcut and macro slots that its
+    /// keys use are copied, the others were never read.
+    fn write_profile_copy(&mut self, device: &HidDevice, source: &[u8]) -> Result<Result<(), String>, DeviceGone> {
+        // The data comes first, so that the keys never point at unfinished shortcuts or macros.
+        for key in 0..KEY_COUNT {
+            let slot = match source[ADDR_KEYS + 4 * key] {
+                KEY_TYPE_SHORTCUT => (ADDR_SHORTCUTS + SHORTCUT_SIZE * key, SHORTCUT_SIZE),
+                KEY_TYPE_MACRO => (ADDR_MACROS + MACRO_SIZE * key, MACRO_SIZE),
+                _ => continue,
+            };
+            if let Err(message) = self.write_flash(device, slot.0, &source[slot.0..slot.0 + slot.1])? {
+                return Ok(Err(message));
+            }
+        }
+        self.write_flash(device, 0, &source[..SETTINGS_READ_END])
+    }
+
+    /// Visits every target like `write_key_everywhere` and comes back to the profile it copied from.
+    fn copy_profile(&mut self, device: &HidDevice, targets: &[u8]) -> Result<Result<(), String>, DeviceGone> {
+        if targets.is_empty() || targets.iter().any(|&target| target >= PROFILE_COUNT) {
+            return Ok(Err("Ungültige Zielprofile.".to_string()));
+        }
+        let (start, source) = {
+            let shared = self.shared.lock().unwrap();
+            (shared.state.profile.unwrap_or(0), shared.flash.clone())
+        };
+        let mut missed = Vec::new();
+        for &target in targets.iter().filter(|&&target| target != start) {
+            let result = match self.set_profile(device, target)? {
+                Ok(()) => self.write_profile_copy(device, &source)?,
+                Err(message) => Err(message),
+            };
+            if let Err(message) = result {
+                missed.push(format!("Profil {} ({message})", target + 1));
+            }
+        }
+        if let Err(message) = self.set_profile(device, start)? {
+            return Ok(Err(message));
+        }
+        if missed.is_empty() {
+            Ok(Ok(()))
+        } else {
+            Ok(Err(format!("Nicht in alle Profile kopiert: {}", missed.join(", "))))
+        }
+    }
+
     fn import_config(&mut self, device: &HidDevice, bytes: &[u8]) -> Result<Result<(), String>, DeviceGone> {
         let connection = self.shared.lock().unwrap().state.connection;
         let flash = match prepare_import(bytes, connection) {
@@ -823,10 +906,25 @@ impl Worker {
         let online = self.query(device, CMD_ONLINE)?.map_or(false, |reply| reply[5] == 1);
         let has_data = self.shared.lock().unwrap().state.has_data;
         if !online || !has_data {
+            if !online {
+                // Marked at once instead of at the next check, and then checked often, so that whoever waits
+                // for the mouse sees it wake up.
+                self.shared.lock().unwrap().check_online = true;
+                self.update(|state| state.online = false);
+            }
             return Ok(Err("Die Maus ist inaktiv. Bitte kurz bewegen und erneut versuchen.".to_string()));
         }
         if let MouseCommand::SetProfile { profile } = command {
             return self.set_profile(device, profile);
+        }
+        if let MouseCommand::CopyProfile { targets } = command {
+            return self.copy_profile(device, &targets);
+        }
+        if let MouseCommand::SetKeyAllProfiles { key, kind, param } = command {
+            if let Err(message) = validate_key(kind, param) {
+                return Ok(Err(message));
+            }
+            return self.write_key_everywhere(device, key as usize, kind, param);
         }
         let result = match command {
             MouseCommand::SetField { field, value } => match validate_field(field, value) {
@@ -843,7 +941,9 @@ impl Worker {
             }
             MouseCommand::SetStages { stages, active } => self.set_stages(device, &stages, active)?,
             MouseCommand::SetLongDistance { on } => self.set_long_distance(device, on)?,
-            MouseCommand::SetLight { .. } | MouseCommand::SetProfile { .. } => unreachable!("handled above"),
+            MouseCommand::SetLight { .. } | MouseCommand::SetProfile { .. } | MouseCommand::SetKeyAllProfiles { .. } | MouseCommand::CopyProfile { .. } => {
+                unreachable!("handled above")
+            }
             MouseCommand::SetKey { key, kind, param } => match validate_key(kind, param) {
                 Ok(()) => self.write_key(device, key as usize, kind, param)?,
                 Err(message) => Err(message),
@@ -1430,7 +1530,13 @@ mod tests {
         assert!(validate_macro("ok", 251, &[]).is_err());
         assert!(validate_macro("ok", 254, &[]).is_ok());
         assert!(validate_macro("ok", 1, &vec![MacroEvent::default(); 71]).is_err());
-        assert!(validate_key(9, 0).is_err());
+        assert!(validate_key(8, 0).is_err(), "light switch, the mouse has no light");
+        assert!(validate_key(KEY_TYPE_PROFILE, 0).is_ok());
+        assert!(validate_key(KEY_TYPE_PROFILE, 1).is_err());
+        assert!(validate_key(KEY_TYPE_DPI_LOCK, 400).is_ok());
+        assert!(validate_key(KEY_TYPE_DPI_LOCK, 410).is_err(), "not on the DPI grid");
+        assert!(validate_key(KEY_TYPE_DPI_LOCK, 0).is_err());
+        assert_eq!(key_entry(KEY_TYPE_DPI_LOCK, 400), [0x0a, 0x01, 0x90, 85u8.wrapping_sub(0x0a + 0x01 + 0x90)]);
         assert!(validate_key(KEY_TYPE_MACRO, 0).is_err());
         assert!(validate_key(KEY_TYPE_FIRE, (10 << 8) | 4).is_err());
         assert!(validate_key(KEY_TYPE_FIRE, (9 << 8) | 2).is_err());

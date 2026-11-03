@@ -15,6 +15,7 @@
   --text: #1c1f3f;
   --muted: #666a8c;
   --danger: #b3263e;
+  --warning: #96580a;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -91,7 +92,8 @@ button { cursor: pointer; }
 /* Before the first read the page only holds sample values, so it must not look like real data. */
 .no-data .page { opacity: .3; pointer-events: none; }
 /* The profile lives on the mouse too, only the language stays at hand. */
-.no-data :is(#profile-label, #profile-select, #profile-rename, #profile-name) { opacity: .3; pointer-events: none; }
+.no-data :is(#profile-label, #profile-select, #profile-rename, #profile-copy, #profile-name) { opacity: .3; pointer-events: none; }
+#profile-copy svg { width: 16px; height: 16px; display: block; margin: auto; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 .page { padding: 18px 28px 28px; }
 [hidden] { display: none !important; }
 
@@ -681,6 +683,44 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
 .tray-level { min-width: 120px; }
 .tray-level input { width: 56px; padding: 3px 6px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background: none; color: var(--ink); font-weight: 700; text-align: center; }
 .tray-preview { padding: 2px 8px; border-radius: 5px; color: #fff; font: 700 13px "Segoe UI", sans-serif; }
+/* Two columns: the app settings on the left, overlay and hotkeys beside them. */
+@media (min-width: 1000px) {
+  #page-settings { grid-template-columns: repeat(2, minmax(0, 520px)); align-items: start; }
+}
+.settings-column { width: 100%; max-width: 520px; display: grid; gap: 18px; }
+.hotkey-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 28px; align-items: center; gap: 4px 12px; }
+.hotkey-row + .hotkey-row { padding-top: 8px; border-top: 1.5px dashed var(--ink-soft); }
+.hotkey-key { min-height: 30px; padding: 3px 10px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background: none; color: var(--ink); font-weight: 700; text-align: left; }
+.hotkey-key.empty { color: var(--muted); font-weight: 400; }
+.hotkey-key.recording { background: var(--ink-soft); }
+.hotkey-clear { width: 28px; height: 28px; padding: 0; border: 0; background: none; color: var(--ink); }
+.hotkey-clear:disabled { visibility: hidden; }
+.hotkey-note { grid-column: 2 / -1; margin: 0; color: var(--warning); font-size: 13px; }
+.hotkey-note.error { color: var(--danger); }
+.hotkey-note.quiet { color: var(--muted); }
+.hotkey-delay { display: grid; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1.5px dashed var(--ink-soft); }
+.hotkey-delay small { display: block; }
+.overlay-options { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px 16px; }
+.overlay-options.off { opacity: .4; pointer-events: none; }
+.overlay-battery { grid-column: 1 / -1; }
+/* Three by two, like the corners of the screen. */
+#overlay-position { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+/* While the app visits the other profiles everything waits, only the status stays readable. */
+.visiting :is(.page, .top, .nav > button) { opacity: .45; }
+.visiting { cursor: progress; }
+
+/* Auswahlfrage */
+.choice-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(23, 28, 116, .16); }
+.choice-backdrop[hidden] { display: none; }
+.choice-card { width: min(460px, 100%); display: grid; gap: 12px; background: var(--page); }
+.choice-card .section-text { margin: 0; }
+.choice-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.choice-buttons button:disabled { opacity: .4; cursor: default; }
+.choice-list { display: grid; gap: 6px; }
+.choice-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.choice-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); }
+.choice-check.all { padding-bottom: 6px; border-bottom: 1.5px dashed var(--ink-soft); font-weight: 700; }
 
 /* Bildlaufleisten: a pen stroke on the paper. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -711,7 +751,7 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
   <header class="top">
     <div class="brand">H-Mouse Config</div>
     <h1 id="title">Tasten</h1>
-    <span class="profile-box"><button type="button" class="profile-rename language-flag" id="language-flag" title="Sprache wechseln" aria-label="Sprache wechseln"></button><span class="light-label" id="profile-label">Profil</span><div class="dropdown" id="profile-select"></div><input class="profile-name" id="profile-name" maxlength="24" placeholder="Eigener Name" aria-label="Name des Profils" hidden><button type="button" class="profile-rename" id="profile-rename" title="Profil umbenennen" aria-label="Profil umbenennen">✎</button></span>
+    <span class="profile-box"><button type="button" class="profile-rename language-flag" id="language-flag" title="Sprache wechseln" aria-label="Sprache wechseln"></button><span class="light-label" id="profile-label">Profil</span><div class="dropdown" id="profile-select"></div><input class="profile-name" id="profile-name" maxlength="24" placeholder="Eigener Name" aria-label="Name des Profils" hidden><button type="button" class="profile-rename" id="profile-rename" title="Profil umbenennen" aria-label="Profil umbenennen">✎</button><button type="button" class="profile-rename" id="profile-copy" title="Profil kopieren" aria-label="Profil kopieren"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.2Q5.4 3 5.6 2.6Q9 2.4 12.9 2.6Q13.1 6.5 12.9 10.4Q11.6 10.6 10.6 10.5"/><path d="M3.1 5.6Q6.8 5.4 10.4 5.6Q10.6 9.5 10.4 13.4Q6.7 13.6 3 13.4Q2.9 9.5 3.1 5.6Z"/></svg></button></span>
     <span class="status"><span class="dot" id="status-dot"></span><span id="status-text">Verbunden</span></span>
     <span class="status" id="status-battery">Akku 82 %</span>
     <span class="status" id="top-dpi"></span>
@@ -836,6 +876,7 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
     </section>
 
     <section class="page" id="page-settings" hidden>
+      <div class="settings-column">
       <div class="card section tray-settings">
         <div class="section-head"><h2>Sprache</h2></div>
         <div class="segments" id="language"></div>
@@ -868,6 +909,36 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
           <span class="tray-preview" id="tray-high-preview">6,4k</span>
         </div>
         <p class="section-text" id="tray-status" role="status"></p>
+      </div>
+      </div>
+      <div class="settings-column">
+      <div class="card section tray-settings">
+        <div class="tray-head"><h2>Overlay</h2><span class="hint">Zeigt nach einem Wechsel kurz die neue DPI, Polling Rate oder das neue Profil</span></div>
+        <div class="switch-row">
+          <div><b id="overlay-label">Einblenden</b><small>Bei Spielen im exklusiven Vollbild bleibt sie unsichtbar.</small></div>
+          <button class="switch" id="overlay-switch" role="switch" aria-labelledby="overlay-label" aria-checked="true"></button>
+        </div>
+        <div class="overlay-options" id="overlay-options">
+          <div class="switch-row overlay-battery">
+            <div><b id="overlay-battery-label">Akkustand mitzeigen</b><small>Steht rechts in jedem Overlay.</small></div>
+            <button class="switch" id="overlay-battery" role="switch" aria-labelledby="overlay-battery-label" aria-checked="true"></button>
+          </div>
+          <b>Dauer</b>
+          <div class="segments" id="overlay-seconds"></div>
+          <b>Position</b>
+          <div class="segments" id="overlay-position"></div>
+        </div>
+        <p class="section-text" id="overlay-status" role="status"></p>
+      </div>
+      <div class="card section tray-settings">
+        <div class="tray-head"><h2>Profil-Tastenkürzel</h2><span class="hint">Wechseln das Profil von überall aus, auch wenn die App im Tray liegt</span></div>
+        <div class="hotkey-list" id="hotkey-list"></div>
+        <div class="hotkey-delay">
+          <div><b>Wartezeit beim Durchschalten</b><small>Die Maus wechselt erst, wenn so lange keine weitere Taste kam.</small></div>
+          <div class="segments" id="hotkey-delay"></div>
+        </div>
+        <p class="section-text" id="hotkey-status" role="status"></p>
+      </div>
       </div>
     </section>
 
@@ -923,12 +994,21 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
   </main>
 </div>
 
+<div class="choice-backdrop" id="choice" hidden>
+  <div class="card section choice-card" role="dialog" aria-modal="true" aria-labelledby="choice-title" aria-describedby="choice-text">
+    <h2 id="choice-title"></h2>
+    <p class="section-text" id="choice-text"></p>
+    <div id="choice-body"></div>
+    <div class="choice-buttons" id="choice-buttons"></div>
+  </div>
+</div>
 <script src="i18n.js"></script>
 <script>
 // Design mock: every value below is sample data, nothing talks to the mouse.
 const CATEGORIES = [
   { id: "buttons", label: "Maustasten", items: ["Linksklick", "Rechtsklick", "Mausrad-Klick", "Vorwärts", "Zurück"] },
   { id: "polling", label: "Polling-Wechsel" },
+  { id: "profile", label: "Profilwechsel" },
   { id: "fire", label: "Dauerfeuer", form: "fire" },
   { id: "combo", label: "Tastenkombination", form: "combo" },
   { id: "disable", label: "Deaktiviert" },
@@ -970,6 +1050,7 @@ let syncMouse = () => {};
 let syncMouseLater = () => {};
 let persistMacros = () => {};
 let pollingLimit = Infinity;
+let visitingProfiles = false;
 
 function el(tag, props, ...children) {
   const node = document.createElement(tag);
@@ -1205,10 +1286,59 @@ document.fonts.ready.then(drawLeaders);
 const keyDropdown = createDropdown($("key-select"), "key-select-label",
   keys.map(k => ({ value: k.id, label: k.name })), id => selectKey(id));
 
+// The DPI lock is set in the DPI list, so that list opens for it.
+const listOf = category => category === "dpiLock" ? "dpi" : category;
+
 function selectKey(id) {
   selectedKey = id;
-  openCategory = keys.find(k => k.id === id).category;
+  openCategory = listOf(keys.find(k => k.id === id).category);
   renderKeys();
+}
+
+/* Auswahlfrage: a small dialog with one button per answer, Escape cancels with null. */
+// A choice may hold a function that reads its answer from `body`, and may start disabled.
+function askChoice(title, text, choices, body = null) {
+  return new Promise(resolve => {
+    const box = $("choice");
+    const onKey = event => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      close(null);
+    };
+    const close = value => {
+      box.hidden = true;
+      document.removeEventListener("keydown", onKey, true);
+      resolve(value);
+    };
+    $("choice-title").textContent = title;
+    $("choice-text").textContent = text;
+    $("choice-body").replaceChildren(...(body ? [body] : []));
+    $("choice-buttons").replaceChildren(...choices.map((choice, i) => {
+      const button = el("button", { type: "button", className: "macro-button" + (i === 0 ? " primary" : ""), textContent: choice.label, disabled: Boolean(choice.disabled) });
+      button.onclick = () => close(typeof choice.value === "function" ? choice.value() : choice.value);
+      return button;
+    }));
+    box.hidden = false;
+    document.addEventListener("keydown", onKey, true);
+    (body?.querySelector("input") || $("choice-buttons").firstChild).focus();
+  });
+}
+
+// Functions that the mouse can write into every profile at once.
+const SIMPLE_CATEGORIES = new Set(["disable", "buttons", "dpi", "dpiLock", "scroll", "fire", "polling", "profile"]);
+const EVERYWHERE = [{ label: "Alle Profile", value: true }, { label: "Nur dieses Profil", value: false }];
+
+/* A profile switch only goes on if the next profile has it on the same key too. */
+async function askEverywhere(key, category) {
+  if (category === "profile") {
+    return askChoice("Profilwechsel auf alle Profile legen?",
+      "Die Taste schaltet zum nächsten Profil. Liegt der Profilwechsel dort nicht auf derselben Taste, kommst du nur ein Profil weiter.", EVERYWHERE);
+  }
+  if (key.category === "profile" && SIMPLE_CATEGORIES.has(category)) {
+    return askChoice("Auch in den anderen Profilen ändern?",
+      "Auf dieser Taste liegt der Profilwechsel. In den anderen Profilen bleibt er sonst bestehen.", EVERYWHERE);
+  }
+  return false;
 }
 
 function isLastLeftClick(key) {
@@ -1216,16 +1346,19 @@ function isLastLeftClick(key) {
   return isLeft(key) && keys.filter(isLeft).length === 1;
 }
 
-function assign(key, category, value, data) {
+async function assign(key, category, value, data) {
   if (isLastLeftClick(key) && !(category === "buttons" && value === "Linksklick")) {
     setConfigStatus("Mindestens eine Taste muss Linksklick bleiben.");
     return;
   }
+  const everywhere = await askEverywhere(key, category);
+  if (everywhere === null) return;
   key.category = category;
   key.value = value;
   key.data = data || null;
-  openCategory = category;
-  setConfigStatus("");
+  key.everywhere = everywhere;
+  openCategory = listOf(category);
+  setConfigStatus(everywhere ? "Übertrage auf alle Profile …" : "", everywhere);
   renderKeys();
   syncMouse("key", key);
 }
@@ -1269,6 +1402,12 @@ function renderDetails(key) {
       button.setAttribute("aria-pressed", String(key.category === category.id && key.value === item));
       button.onclick = () => assign(key, category.id, item);
       details.append(button);
+    }
+    if (category.id === "dpi") {
+      // While the key is held, the mouse runs at this DPI.
+      const field = numberField("DPI-Sperre: DPI, solange gedrückt", key.category === "dpiLock" ? key.data.dpi : 400, DPI_MIN, DPI_MAX);
+      const dpi = () => snapDpi(Number(field.querySelector("input").value) || 400);
+      details.append(field, applyButton(key, { id: "dpiLock" }, () => "DPI-Sperre " + dpi(), () => ({ dpi: dpi() })));
     }
   } else if (category.form === "fire") {
     const current = key.category === "fire" && key.data ? key.data : { times: 2, interval: 10 };
@@ -2227,7 +2366,32 @@ function showProfileEditor(on) {
   $("profile-select").hidden = on;
   $("profile-name").hidden = !on;
   $("profile-rename").hidden = on;
+  $("profile-copy").hidden = on;
 }
+
+/* Profil kopieren: every other profile can be ticked, the names stay with each profile. */
+let copyProfile = targets => {
+  const copy = snapshotProfile();
+  targets.forEach(target => { profiles[target] = JSON.parse(JSON.stringify(copy)); });
+};
+$("profile-copy").onclick = async () => {
+  const boxes = [...Array(PROFILE_COUNT).keys()].filter(i => i !== activeProfile).map(i => ({ index: i, input: el("input", { type: "checkbox" }) }));
+  const all = el("input", { type: "checkbox" });
+  const ticked = () => boxes.filter(box => box.input.checked).map(box => box.index);
+  const update = () => {
+    all.checked = ticked().length === boxes.length;
+    $("choice-buttons").firstChild.disabled = ticked().length === 0;
+  };
+  all.onchange = () => { boxes.forEach(box => { box.input.checked = all.checked; }); update(); };
+  boxes.forEach(box => { box.input.onchange = update; });
+  const list = el("div", { className: "choice-list" },
+    el("label", { className: "choice-check all" }, all, el("span", { textContent: "Alle auswählen" })),
+    ...boxes.map(box => el("label", { className: "choice-check" }, box.input, el("span", { textContent: profileLabel(box.index) }))));
+  const targets = await askChoice(profileLabel(activeProfile) + " kopieren nach …",
+    "Die gewählten Profile werden überschrieben: Tasten, DPI-Stufen, Polling Rate, Sensor-Einstellungen, Tastenkombinationen und Makros. Ihre Namen bleiben.",
+    [{ label: "Kopieren", value: ticked, disabled: true }, { label: "Abbrechen", value: null }], list);
+  if (targets && targets.length) copyProfile(targets);
+};
 $("profile-rename").onclick = () => {
   $("profile-name").value = profileNames[activeProfile];
   showProfileEditor(true);
@@ -2338,6 +2502,8 @@ if (window.__TAURI__) {
         return { category: "combo", value: binding.combo.map(eventName).join(" + ") || "Tastenkombination", data: { keys: binding.combo } };
       case 6: return { category: "macro", value: binding.macroName || "Makro" };
       case 7: return { category: "polling", value: "Polling-Wechsel" };
+      case 9: return { category: "profile", value: "Profilwechsel" };
+      case 10: return { category: "dpiLock", value: "DPI-Sperre " + binding.param, data: { dpi: binding.param } };
       default: return { category: "disable", value: "Unbekannt (" + binding.kind + ")" };
     }
   }
@@ -2368,7 +2534,7 @@ if (window.__TAURI__) {
 
   function keyCommand(key) {
     const index = keyIndex(key);
-    const simple = (kind, param) => ({ type: "setKey", key: index, kind, param });
+    const simple = (kind, param) => ({ type: key.everywhere ? "setKeyAllProfiles" : "setKey", key: index, kind, param });
     switch (key.category) {
       case "disable": return simple(0, 0);
       case "buttons": return simple(1, BUTTON_PARAMS[key.value]);
@@ -2376,6 +2542,8 @@ if (window.__TAURI__) {
       case "scroll": return simple(3, SCROLL_PARAMS[key.value]);
       case "fire": return simple(4, (key.data.interval << 8) + key.data.times);
       case "polling": return simple(7, 0);
+      case "profile": return simple(9, 0);
+      case "dpiLock": return simple(10, key.data.dpi);
       case "media": return { type: "setMedia", key: index, code: MEDIA_CODES[key.value] };
       case "combo": return { type: "setCombo", key: index, keys: key.data.keys };
       case "macro": return macroCommand(key, macros.find(m => m.name === key.value));
@@ -2385,6 +2553,7 @@ if (window.__TAURI__) {
 
   function commandsFor(topic, target) {
     if (topic === "profile") return [{ type: "setProfile", profile: target }];
+    if (topic === "copyProfile") return [{ type: "copyProfile", targets: target }];
     if (topic === "key") return [keyCommand(target)];
     if (topic === "clearMacro") return [{ type: "clearMacro", key: keyIndex(target) }];
     if (topic === "macro") {
@@ -2412,16 +2581,30 @@ if (window.__TAURI__) {
   let queue = Promise.resolve();
   const SEND_DELAY_MS = 500;
   const pendingSends = new Map();
+  // These visit the other profiles one by one. The screen keeps showing the profile they started on and
+  // stays locked, so nothing gets clicked in a profile that is only passing by.
+  const VISITING_COMMANDS = ["copyProfile", "setKeyAllProfiles"];
+  function lockForVisit(on) {
+    visitingProfiles = on;
+    document.body.classList.toggle("visiting", on);
+    document.querySelector(".app").inert = on;
+  }
   syncMouse = (topic, target) => {
     clearTimeout(pendingSends.get(topic));
     pendingSends.delete(topic);
     const commands = commandsFor(topic, target);
+    const visits = commands.some(command => VISITING_COMMANDS.includes(command.type));
+    if (visits) lockForVisit(true);
     queue = queue.then(async () => {
       try {
         for (const command of commands) await invoke("mouse_command", { command });
         setConfigStatus("");
       } catch (error) {
         setConfigStatus(String(error));
+        if (!visits) applyMouse(await invoke("get_mouse_state"));
+      }
+      if (visits) {
+        lockForVisit(false);
         applyMouse(await invoke("get_mouse_state"));
       }
     });
@@ -2456,6 +2639,12 @@ if (window.__TAURI__) {
     setConfigStatus("Wechsle das Profil ...", true);
     syncMouse("profile", index);
   };
+  copyProfile = targets => {
+    // A value still waiting belongs to the profile that is copied.
+    flushPendingSends();
+    setConfigStatus("Kopiere das Profil ...", true);
+    syncMouse("copyProfile", targets);
+  };
   // Over Bluetooth the mouse sends only its battery level, the settings need the receiver or the cable.
   let bluetooth = { connected: false, battery: null };
   let lastMouse = null;
@@ -2465,9 +2654,9 @@ if (window.__TAURI__) {
     const viaBluetooth = bluetooth.connected;
     const dot = $("status-dot");
     dot.className = "dot" + (viaBluetooth ? "" : !mouse.connected ? " off" : !mouse.online ? " idle" : "");
-    $("status-text").textContent = viaBluetooth ? "Per Bluetooth verbunden" : !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus inaktiv" : "Verbunden";
-    // The data read over the receiver is still there, but nothing can be sent while the mouse is on Bluetooth.
-    setHasData(mouse.hasData && !viaBluetooth);
+    $("status-text").textContent = viaBluetooth ? "Per Bluetooth verbunden" : !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus schläft, bitte bewegen" : "Verbunden";
+    // The data read over the receiver is still there, but nothing reaches a sleeping mouse or one on Bluetooth.
+    setHasData(mouse.hasData && mouse.online && !viaBluetooth);
     // Non-breaking spaces, so that a narrow window breaks the line only before the part from the mouse.
     const reported = mouse.batteryRaw === null ? "" : " · Maus " + mouse.batteryRaw + " %" + (mouse.batteryVoltage ? ", " + mouse.batteryVoltage + " mV" : "");
     $("status-battery").textContent = viaBluetooth ? (bluetooth.battery === null ? "" : "Akku " + bluetooth.battery + " %") : mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "") + reported;
@@ -2579,6 +2768,111 @@ if (window.__TAURI__) {
   ["tray-low", "tray-mid", ...TRAY_LEVELS.map(level => `tray-${level}-color`)].forEach(id => { $(id).onchange = saveTraySettings; });
   invoke("get_tray_settings").then(showTraySettings);
 
+  /* Overlay */
+  const OVERLAY_POSITIONS = { "top-left": "Links oben", "top-center": "Oben Mitte", "top-right": "Rechts oben", "bottom-left": "Links unten", "bottom-center": "Unten Mitte", "bottom-right": "Rechts unten" };
+  let overlaySettings = null;
+  function renderOverlaySettings() {
+    $("overlay-switch").setAttribute("aria-checked", String(overlaySettings.enabled));
+    $("overlay-options").classList.toggle("off", !overlaySettings.enabled);
+    $("overlay-battery").setAttribute("aria-checked", String(overlaySettings.battery));
+    renderSegments("overlay-seconds", [1, 2, 3, 5, 10], overlaySettings.seconds, v => v + " s", v => saveOverlaySettings({ seconds: v }));
+    renderSegments("overlay-position", Object.keys(OVERLAY_POSITIONS), overlaySettings.position, v => OVERLAY_POSITIONS[v], v => saveOverlaySettings({ position: v }));
+  }
+  // Saving also shows a sample, so the choice is visible right away.
+  async function saveOverlaySettings(change) {
+    if (!overlaySettings) return;
+    overlaySettings = { ...overlaySettings, ...change };
+    renderOverlaySettings();
+    try {
+      await invoke("save_overlay_settings", { settings: overlaySettings });
+      $("overlay-status").textContent = "";
+    } catch (error) {
+      $("overlay-status").textContent = String(error);
+    }
+  }
+  $("overlay-switch").onclick = () => saveOverlaySettings({ enabled: !overlaySettings?.enabled });
+  $("overlay-battery").onclick = () => saveOverlaySettings({ battery: !overlaySettings?.battery });
+  invoke("get_overlay_settings").then(settings => { overlaySettings = settings; renderOverlaySettings(); });
+
+  /* Profil-Tastenkürzel */
+  const HOTKEY_SLOTS = ["Nächstes Profil", "Vorheriges Profil", "Profil 1", "Profil 2", "Profil 3", "Profil 4"];
+  const MODIFIER_CODES = ["ControlLeft", "ControlRight", "AltLeft", "AltRight", "ShiftLeft", "ShiftRight", "MetaLeft", "MetaRight"];
+  let hotkeyViews = [];
+  let recording = null;
+  // With NumLock off the numpad sends these keys instead of digits, and Windows registers what it gets.
+  const NAVIGATION_KEYS = { 12: "Num 5", 33: "Bild hoch", 34: "Bild runter", 35: "Ende", 36: "Pos1", 37: "Pfeil links", 38: "Pfeil hoch", 39: "Pfeil rechts", 40: "Pfeil runter", 45: "Einfg", 46: "Entf" };
+  const hotkeyName = event => event.code.startsWith("Numpad") ? "Num " + (event.key.length === 1 ? event.key : event.code.slice(6)) : keyLabel(event);
+  const learnedWithNumLockOff = hotkey => hotkey.key in NAVIGATION_KEYS && hotkey.name.startsWith("Num ");
+  const modifierParts = keys => [keys.ctrl && "Strg", keys.alt && "Alt", keys.shift && "Umschalt", keys.win && "Win"].filter(Boolean);
+  // Every part is a text of its own, so that the English page can translate it.
+  function showKeys(button, parts) {
+    button.replaceChildren(...parts.flatMap((part, i) => i ? ["+", el("span", { textContent: part })] : [el("span", { textContent: part })]));
+  }
+  function renderHotkeys(errorSlot, errorText) {
+    $("hotkey-list").replaceChildren(...HOTKEY_SLOTS.map((label, slot) => {
+      const view = hotkeyViews[slot] || { warnings: [] };
+      const keys = el("button", { type: "button", className: "hotkey-key" });
+      if (view.hotkey) showKeys(keys, [...modifierParts(view.hotkey), NAVIGATION_KEYS[view.hotkey.key] || view.hotkey.name]);
+      else { keys.classList.add("empty"); keys.textContent = "Nicht belegt"; }
+      keys.onclick = () => recordHotkey(slot, keys);
+      const clear = el("button", { type: "button", className: "hotkey-clear", textContent: "✕", title: "Tastenkürzel entfernen", disabled: !view.hotkey });
+      clear.onclick = () => saveHotkey(slot, null);
+      const error = slot === errorSlot ? errorText : view.error;
+      const notes = (error ? [el("p", { className: "hotkey-note error", textContent: error })] : [])
+        .concat(view.hotkey && learnedWithNumLockOff(view.hotkey) ? [el("p", { className: "hotkey-note quiet", textContent: "Bei NumLock aus angelernt" })] : [])
+        .concat(view.warnings.map(warning => el("p", { className: "hotkey-note", textContent: warning })));
+      return el("div", { className: "hotkey-row" }, el("span", { textContent: label }), keys, clear, ...notes);
+    }));
+  }
+  // The registered combinations are paused meanwhile, otherwise they would switch instead of arriving here.
+  function recordHotkey(slot, keys) {
+    stopRecording();
+    invoke("pause_hotkeys", { paused: true }).catch(() => {});
+    recording = keys;
+    keys.classList.add("recording");
+    keys.textContent = "Tasten drücken …";
+    keys.onkeydown = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat) return;
+      const held = modifierParts({ ctrl: event.ctrlKey, alt: event.altKey, shift: event.shiftKey, win: event.metaKey });
+      if (MODIFIER_CODES.includes(event.code)) { showKeys(keys, [...held, "…"]); return; }
+      if (event.code === "Escape" && !held.length) { stopRecording(); renderHotkeys(); return; }
+      saveHotkey(slot, { ctrl: event.ctrlKey, alt: event.altKey, shift: event.shiftKey, win: event.metaKey, key: event.keyCode, name: hotkeyName(event) });
+    };
+    keys.onblur = () => { stopRecording(); renderHotkeys(); };
+  }
+  function stopRecording() {
+    if (!recording) return;
+    recording.onkeydown = recording.onblur = null;
+    recording = null;
+    invoke("pause_hotkeys", { paused: false }).catch(() => {});
+  }
+  async function saveHotkey(slot, hotkey) {
+    if (recording) recording.onkeydown = recording.onblur = null;
+    recording = null;
+    try {
+      hotkeyViews = await invoke("set_hotkey", { slot, hotkey });
+      renderHotkeys();
+    } catch (error) {
+      await invoke("pause_hotkeys", { paused: false }).catch(() => {});
+      renderHotkeys(slot, String(error));
+    }
+  }
+  invoke("get_hotkeys").then(views => { hotkeyViews = views; renderHotkeys(); });
+  function renderCycleDelay(current) {
+    renderSegments("hotkey-delay", [500, 1000, 1500, 2000], current, v => String(v / 1000).replace(".", ",") + " s", async v => {
+      renderCycleDelay(v);
+      try {
+        await invoke("set_cycle_delay", { delay: v });
+        $("hotkey-status").textContent = "";
+      } catch (error) {
+        $("hotkey-status").textContent = String(error);
+      }
+    });
+  }
+  invoke("get_cycle_delay").then(renderCycleDelay);
+
   // The file is the truth, because the tray needs it too. The first start follows Windows.
   saveLanguage = language => { invoke("set_language", { language }).catch(error => setConfigStatus(String(error))); };
   invoke("get_version").then(version => { $("app-version").textContent = "H-Mouse Config " + version; });
@@ -2639,7 +2933,7 @@ if (window.__TAURI__) {
   }).catch(error => setConfigStatus(String(error))).finally(() => {
     loadMacro(0);
     renderMacros();
-    listen("mouse-state", event => applyMouse(event.payload));
+    listen("mouse-state", event => { if (!visitingProfiles) applyMouse(event.payload); });
     invoke("get_mouse_state").then(applyMouse);
     const applyBluetooth = state => {
       bluetooth = state;

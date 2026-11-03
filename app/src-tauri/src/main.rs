@@ -1,7 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod bluetooth;
+mod hotkeys;
 mod mouse;
+mod overlay;
 mod tray;
 
 use tauri::{Emitter, Manager, State, WindowEvent};
@@ -72,8 +74,8 @@ fn safe_file_name(name: &str) -> String {
 }
 
 #[tauri::command(async)]
-fn mouse_command(mouse: State<'_, mouse::MouseHandle>, command: mouse::MouseCommand) -> Result<(), String> {
-    mouse.send(command)
+fn mouse_command(app: tauri::AppHandle, mouse: State<'_, mouse::MouseHandle>, command: mouse::MouseCommand) -> Result<(), String> {
+    overlay::quietly(&app, || mouse.send(command))
 }
 
 #[tauri::command(async)]
@@ -122,7 +124,7 @@ fn import_config(app: tauri::AppHandle, mouse: State<'_, mouse::MouseHandle>) ->
     let Some(source) = source else { return Ok(None) };
     let path = source.into_path().map_err(|e| e.to_string())?;
     let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
-    mouse.send(mouse::MouseCommand::ImportConfig { bytes })?;
+    overlay::quietly(&app, || mouse.send(mouse::MouseCommand::ImportConfig { bytes }))?;
     Ok(Some(path.display().to_string()))
 }
 
@@ -135,14 +137,17 @@ fn main() {
         .setup(|app| {
             tray::create(app.handle())?;
             tray::prepare_autostart(app.handle());
+            overlay::create(app.handle());
             let handle = app.handle().clone();
             let mouse = mouse::start(move |state| {
                 tray::refresh(&handle, &state);
+                overlay::mouse_changed(&handle, &state);
                 let _ = handle.emit("mouse-state", state);
             });
             app.manage(mouse);
             let bluetooth = bluetooth::BluetoothHandle::default();
             app.manage(bluetooth.clone());
+            hotkeys::create(app.handle());
             let handle = app.handle().clone();
             bluetooth::watch(bluetooth, move |state| {
                 let mouse = handle.state::<mouse::MouseHandle>();
@@ -169,7 +174,7 @@ fn main() {
                 let _ = window.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state, get_bluetooth_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language])
+        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state, get_bluetooth_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language, overlay::get_overlay_settings, overlay::save_overlay_settings, hotkeys::get_hotkeys, hotkeys::set_hotkey, hotkeys::pause_hotkeys, hotkeys::get_cycle_delay, hotkeys::set_cycle_delay])
         .run(tauri::generate_context!())
         .expect("failed to run H-Mouse Config");
 }
