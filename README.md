@@ -25,6 +25,8 @@ mouse, and nothing here is tested or endorsed by the manufacturer.
 - Four profiles with your own names
 - Export and import of the configuration
 - Tray icon with DPI and battery colour, quick profile switching, start with Windows
+- Over Bluetooth the mouse reports only its battery level, which the window and the tray icon show;
+  settings need the receiver or the cable
 
 Firmware updates are deliberately not included.
 

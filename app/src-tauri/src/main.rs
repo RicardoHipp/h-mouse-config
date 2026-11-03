@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod bluetooth;
 mod mouse;
 mod tray;
 
@@ -9,6 +10,11 @@ use tauri_plugin_dialog::DialogExt;
 #[tauri::command]
 fn get_mouse_state(mouse: State<'_, mouse::MouseHandle>) -> mouse::MouseState {
     mouse.state()
+}
+
+#[tauri::command]
+fn get_bluetooth_state(bluetooth: State<'_, bluetooth::BluetoothHandle>) -> bluetooth::BluetoothState {
+    bluetooth.state()
 }
 
 #[tauri::command]
@@ -135,6 +141,16 @@ fn main() {
                 let _ = handle.emit("mouse-state", state);
             });
             app.manage(mouse);
+            let bluetooth = bluetooth::BluetoothHandle::default();
+            app.manage(bluetooth.clone());
+            let handle = app.handle().clone();
+            bluetooth::watch(bluetooth, move |state| {
+                let mouse = handle.state::<mouse::MouseHandle>();
+                // A switch to or from Bluetooth also changes what the receiver sees.
+                mouse.check_online();
+                tray::refresh(&handle, &mouse.state());
+                let _ = handle.emit("bluetooth-state", state);
+            });
             #[cfg(windows)]
             paint_title_bar(app);
             if let Some(window) = app.get_webview_window("main") {
@@ -153,7 +169,7 @@ fn main() {
                 let _ = window.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language])
+        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state, get_bluetooth_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language])
         .run(tauri::generate_context!())
         .expect("failed to run H-Mouse Config");
 }

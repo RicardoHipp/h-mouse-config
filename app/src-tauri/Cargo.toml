@@ -1,6 +1,6 @@
 [package]
 name = "h-mouse-config"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 
@@ -19,6 +19,7 @@ ab_glyph = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+windows = { version = "0.62", features = ["Devices_Bluetooth", "Devices_Bluetooth_GenericAttributeProfile", "Devices_Enumeration", "Foundation", "Foundation_Collections", "Storage_Streams", "Win32_System_Com"] }
 
 [profile.release]
 codegen-units = 1

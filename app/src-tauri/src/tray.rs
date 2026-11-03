@@ -10,6 +10,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, State, Wry};
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::bluetooth::{BluetoothHandle, BluetoothState};
 use crate::mouse::{MouseCommand, MouseHandle, MouseState};
 
 const TRAY_ID: &str = "main";
@@ -114,8 +115,15 @@ fn profile_label(labels: &[String], profile: usize, english: bool) -> String {
     }
 }
 
-fn tooltip(state: &MouseState, labels: &[String], english: bool) -> String {
+fn tooltip(state: &MouseState, bluetooth: Option<&BluetoothState>, labels: &[String], english: bool) -> String {
     let say = |german: &'static str, translated: &'static str| if english { translated } else { german };
+    if let Some(bluetooth) = bluetooth {
+        let mut parts = vec!["H-Mouse Config".to_string(), "Bluetooth".to_string()];
+        if let Some(level) = bluetooth.battery {
+            parts.push(format!("{} {level} %", say("Akku", "Battery")));
+        }
+        return parts.join(", ");
+    }
     if !state.connected {
         return format!("H-Mouse Config: {}", say("nicht verbunden", "not connected"));
     }
@@ -381,16 +389,22 @@ pub fn set_autostart(app: AppHandle, on: bool) -> Result<bool, String> {
 pub fn refresh(app: &AppHandle, state: &MouseState) {
     let Some(handle) = app.try_state::<TrayHandle>() else { return };
     let Some(icon) = app.tray_by_id(TRAY_ID) else { return };
+    // Over Bluetooth the mouse tells only its battery level, so the icon shows that instead of the DPI.
+    // Bluetooth wins: after a switch the receiver still reports the mouse for about six seconds.
+    let bluetooth = app.try_state::<BluetoothHandle>().map(|handle| handle.state()).filter(|bluetooth| bluetooth.connected);
 
     // The tray calls below wait for the main thread, and commands on the main thread may wait
     // for this lock. Holding it across those calls would freeze the whole app.
     let (new_look, tip, items) = {
         let mut tray = handle.0.lock().unwrap();
-        let text = active_dpi(state).map_or_else(|| "-".to_string(), format_dpi);
-        let look = (text, battery_color(&tray.settings, state.battery));
+        let (text, battery) = match &bluetooth {
+            Some(bluetooth) => (bluetooth.battery.map_or_else(|| "-".to_string(), |level| format!("{level}%")), bluetooth.battery),
+            None => (active_dpi(state).map_or_else(|| "-".to_string(), format_dpi), state.battery),
+        };
+        let look = (text, battery_color(&tray.settings, battery));
         let new_look = (tray.last_look.as_ref() != Some(&look)).then(|| look.clone());
         tray.last_look = Some(look);
-        (new_look, tooltip(state, &tray.labels, tray.english), tray.profile_items.clone())
+        (new_look, tooltip(state, bluetooth.as_ref(), &tray.labels, tray.english), tray.profile_items.clone())
     };
     if let Some((text, background)) = new_look {
         let _ = icon.set_icon(Some(tray_image(&text, background)));
@@ -504,6 +518,14 @@ mod tests {
     }
 
     #[test]
+    fn tooltip_over_bluetooth_shows_only_the_battery() {
+        let bluetooth = BluetoothState { connected: true, battery: Some(95) };
+        assert_eq!(tooltip(&MouseState::default(), Some(&bluetooth), &[], false), "H-Mouse Config, Bluetooth, Akku 95 %");
+        assert_eq!(tooltip(&MouseState::default(), Some(&bluetooth), &[], true), "H-Mouse Config, Bluetooth, Battery 95 %");
+        assert_eq!(tooltip(&MouseState::default(), None, &[], false), "H-Mouse Config: nicht verbunden");
+    }
+
+    #[test]
     fn profile_label_keeps_the_number() {
         let labels = vec!["Büro".to_string(), " ".to_string()];
         assert_eq!(profile_label(&labels, 0, false), "Profil 1 – Büro");
@@ -514,7 +536,7 @@ mod tests {
 
     #[test]
     fn icon_shows_background_and_text_inside_its_bounds() {
-        for text in ["-", "0,8k", "6,4k", "12k", "12,8k", "40k"] {
+        for text in ["-", "0,8k", "6,4k", "12k", "12,8k", "40k", "5%", "95%", "100%"] {
             let pixels = render_icon(text, [0x1f, 0x8a, 0x50], 32);
             assert_eq!(pixels.len(), 32 * 32 * 4);
             assert_eq!(&pixels[(32 + 16) * 4..(32 + 16) * 4 + 4], &[0x1f, 0x8a, 0x50, 255]);            if tray_font().is_some() {

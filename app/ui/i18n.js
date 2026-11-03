@@ -6,7 +6,7 @@
     "Bereiche": "Sections", "Tasten": "Buttons", "Makros": "Macros", "Sensor": "Sensor", "Einstellungen": "Settings",
     "Konfiguration": "Configuration", "Exportieren": "Export", "Importieren": "Import", "Zurücksetzen": "Reset", "Wirklich zurücksetzen?": "Really reset?",
     "Profil": "Profile", "Profil umbenennen": "Rename profile", "Eigener Name": "Custom name", "Name des Profils": "Profile name",
-    "Verbunden": "Connected", "Nicht verbunden": "Not connected", "Maus inaktiv": "Mouse inactive", "Suche Maus": "Looking for mouse",
+    "Verbunden": "Connected", "Per Bluetooth verbunden": "Connected via Bluetooth", "Nicht verbunden": "Not connected", "Maus inaktiv": "Mouse inactive", "Suche Maus": "Looking for mouse",
     // Buttons page
     "Du bearbeitest": "You are editing", "Aktuell:": "Current:", "Skizze der Maus": "Sketch of the mouse",
     "Rechte Taste": "Right button", "Linke Taste": "Left button", "Mausrad": "Mouse wheel", "Vordere Seitentaste": "Front side button", "Hintere Seitentaste": "Rear side button",

@@ -115,6 +115,10 @@ const IDLE_READ_MS: i32 = 200;
 const RECONNECT_DELAY: Duration = Duration::from_secs(3);
 const ONLINE_CHECK: Duration = Duration::from_secs(30);
 const OFFLINE_CHECK: Duration = Duration::from_secs(3);
+/// After a cable or Bluetooth change the receiver still reports the mouse for a few seconds,
+/// so it is asked every second for this long.
+const SWITCH_WINDOW: Duration = Duration::from_secs(10);
+const SWITCH_CHECK: Duration = Duration::from_secs(1);
 const BATTERY_CHECK: Duration = Duration::from_secs(60);
 
 /// Discharge curve as (millivolts, percent), measured over one full discharge: the voltage at which the level byte
@@ -234,6 +238,7 @@ pub struct MouseState {
 struct Shared {
     state: MouseState,
     flash: Vec<u8>,
+    check_online: bool,
 }
 
 #[derive(Clone)]
@@ -252,6 +257,11 @@ impl MouseHandle {
         let (reply, result) = mpsc::channel();
         self.jobs.send(Job { command, reply }).map_err(|_| "Die Mausverbindung läuft nicht.".to_string())?;
         result.recv().map_err(|_| "Die Mausverbindung wurde unterbrochen.".to_string())?
+    }
+
+    /// Asks the receiver at once whether the mouse is still there, instead of at the next regular check.
+    pub fn check_online(&self) {
+        self.shared.lock().unwrap().check_online = true;
     }
 
     /// Export layout: flash copy plus a 64 byte footer.
@@ -273,6 +283,7 @@ pub fn start(on_change: impl Fn(MouseState) + Send + 'static) -> MouseHandle {
     let shared = Arc::new(Mutex::new(Shared {
         state: MouseState::default(),
         flash: vec![0xFF; FLASH_SIZE],
+        check_online: false,
     }));
     let (jobs, job_queue) = mpsc::channel();
     let handle = MouseHandle { shared: shared.clone(), jobs };
@@ -513,6 +524,13 @@ fn polling_to_flash(hz: u32) -> u8 {
     }
 }
 
+fn vendor_paths(api: &HidApi) -> Vec<CString> {
+    api.device_list()
+        .filter(|d| d.vendor_id() == VENDOR_ID && PRODUCT_IDS.contains(&d.product_id()))
+        .map(|d| d.path().to_owned())
+        .collect()
+}
+
 fn max_polling(connection: u8) -> u32 {
     match connection {
         1 => 4000,
@@ -544,8 +562,11 @@ fn encode_dpi(dpi: u32) -> [u8; DPI_ENTRY_LEN] {
 impl Worker {
     fn run(&mut self) {
         loop {
-            if let Some(device) = self.open_device() {
-                let _ = self.session(&device);
+            if let Some((device, path)) = self.open_device() {
+                if self.session(&device, &path).is_ok() {
+                    // The mouse answers on another connection, so that one is opened right away.
+                    continue;
+                }
             }
             self.update(|state| *state = MouseState::default());
             let wait_until = Instant::now() + RECONNECT_DELAY;
@@ -875,22 +896,38 @@ impl Worker {
         (self.on_change)(snapshot);
     }
 
-    fn open_device(&mut self) -> Option<HidDevice> {
+    /// The receiver answers even while the mouse is away, for example on the cable, so a connection
+    /// that reaches the mouse comes first.
+    fn open_device(&mut self) -> Option<(HidDevice, CString)> {
         let api = HidApi::new().ok()?;
-        let paths: Vec<CString> = api
-            .device_list()
-            .filter(|d| d.vendor_id() == VENDOR_ID && PRODUCT_IDS.contains(&d.product_id()))
-            .map(|d| d.path().to_owned())
-            .collect();
-        for path in paths {
+        let mut fallback = None;
+        for path in vendor_paths(&api) {
             let Ok(device) = api.open_path(&path) else { continue };
-            // Only the vendor collection answers on report 8, the others reject the write.
-            let probe = build_packet(CMD_ONLINE, 0, 0, &[]);
-            if let Ok(Some(_)) = self.request(&device, &probe) {
-                return Some(device);
+            match self.probe(&device) {
+                Some(true) => return Some((device, path)),
+                Some(false) if fallback.is_none() => fallback = Some((device, path)),
+                _ => {}
             }
         }
-        None
+        fallback
+    }
+
+    /// Whether the mouse answers on a connection other than the open one.
+    fn mouse_elsewhere(&mut self, current: &CString) -> bool {
+        let Ok(api) = HidApi::new() else { return false };
+        vendor_paths(&api)
+            .into_iter()
+            .filter(|path| path != current)
+            .any(|path| api.open_path(&path).is_ok_and(|device| self.probe(&device) == Some(true)))
+    }
+
+    /// Only the vendor collection answers on report 8, the others reject the write.
+    /// The answer says whether the mouse itself is reachable.
+    fn probe(&mut self, device: &HidDevice) -> Option<bool> {
+        match self.request(device, &build_packet(CMD_ONLINE, 0, 0, &[])) {
+            Ok(Some(reply)) => Some(reply[5] == 1),
+            _ => None,
+        }
     }
 
     fn request(&mut self, device: &HidDevice, packet: &Packet) -> Result<Option<Packet>, DeviceGone> {
@@ -1047,6 +1084,12 @@ impl Worker {
             let target = if voltage > 0 { voltage_to_level(voltage, charging) } else { reply[5] };
             let shown = next_battery_display(self.battery_display, target, reply[5], charging);
             self.battery_display = Some(shown);
+            let mut shared = self.shared.lock().unwrap();
+            // A plugged or pulled cable may move the mouse from the receiver to the cable or back.
+            if shared.state.battery.is_some() && shared.state.charging != charging {
+                shared.check_online = true;
+            }
+            drop(shared);
             self.update(|state| {
                 state.battery = Some(shown);
                 state.battery_raw = Some(reply[5]);
@@ -1108,7 +1151,8 @@ impl Worker {
         Ok(())
     }
 
-    fn session(&mut self, device: &HidDevice) -> Result<(), DeviceGone> {
+    /// Ends with `Ok` when the mouse is away here but answers on another connection.
+    fn session(&mut self, device: &HidDevice, path: &CString) -> Result<(), DeviceGone> {
         self.update(|state| state.connected = true);
 
         // This handshake comes before anything else and returns the device ids.
@@ -1125,9 +1169,14 @@ impl Worker {
         let mut was_online = false;
         let mut needs_read = true;
         let mut next_online_check = Instant::now();
+        let mut switch_until = Instant::now();
         let mut next_battery = Instant::now() + BATTERY_CHECK;
         loop {
             let now = Instant::now();
+            if std::mem::take(&mut self.shared.lock().unwrap().check_online) {
+                next_online_check = now;
+                switch_until = now + SWITCH_WINDOW;
+            }
             if now >= next_online_check {
                 let online = self.query(device, CMD_ONLINE)?.map_or(false, |reply| reply[5] == 1);
                 if online && !was_online {
@@ -1135,7 +1184,10 @@ impl Worker {
                 }
                 was_online = online;
                 self.update(|state| state.online = online);
-                next_online_check = now + if online { ONLINE_CHECK } else { OFFLINE_CHECK };
+                next_online_check = now + if now < switch_until { SWITCH_CHECK } else if online { ONLINE_CHECK } else { OFFLINE_CHECK };
+                if !online && self.mouse_elsewhere(path) {
+                    return Ok(());
+                }
             }
             if was_online && needs_read && self.read_all(device)? {
                 self.apply_flash();

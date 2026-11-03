@@ -90,6 +90,8 @@ button { cursor: pointer; }
 [inert] { cursor: default; }
 /* Before the first read the page only holds sample values, so it must not look like real data. */
 .no-data .page { opacity: .3; pointer-events: none; }
+/* The profile lives on the mouse too, only the language stays at hand. */
+.no-data :is(#profile-label, #profile-select, #profile-rename, #profile-name) { opacity: .3; pointer-events: none; }
 .page { padding: 18px 28px 28px; }
 [hidden] { display: none !important; }
 
@@ -2454,18 +2456,25 @@ if (window.__TAURI__) {
     setConfigStatus("Wechsle das Profil ...", true);
     syncMouse("profile", index);
   };
+  // Over Bluetooth the mouse sends only its battery level, the settings need the receiver or the cable.
+  let bluetooth = { connected: false, battery: null };
+  let lastMouse = null;
   function showStatus(mouse) {
+    lastMouse = mouse;
+    // Bluetooth wins: after a switch the receiver still reports the mouse for about six seconds.
+    const viaBluetooth = bluetooth.connected;
     const dot = $("status-dot");
-    dot.className = "dot" + (!mouse.connected ? " off" : !mouse.online ? " idle" : "");
-    $("status-text").textContent = !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus inaktiv" : "Verbunden";
+    dot.className = "dot" + (viaBluetooth ? "" : !mouse.connected ? " off" : !mouse.online ? " idle" : "");
+    $("status-text").textContent = viaBluetooth ? "Per Bluetooth verbunden" : !mouse.connected ? "Nicht verbunden" : !mouse.online ? "Maus inaktiv" : "Verbunden";
+    // The data read over the receiver is still there, but nothing can be sent while the mouse is on Bluetooth.
+    setHasData(mouse.hasData && !viaBluetooth);
     // Non-breaking spaces, so that a narrow window breaks the line only before the part from the mouse.
     const reported = mouse.batteryRaw === null ? "" : " · Maus " + mouse.batteryRaw + " %" + (mouse.batteryVoltage ? ", " + mouse.batteryVoltage + " mV" : "");
-    $("status-battery").textContent = mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "") + reported;
+    $("status-battery").textContent = viaBluetooth ? (bluetooth.battery === null ? "" : "Akku " + bluetooth.battery + " %") : mouse.battery === null ? "" : "Akku " + mouse.battery + " %" + (mouse.charging ? " (lädt)" : "") + reported;
   }
 
   function applyMouse(mouse) {
     showStatus(mouse);
-    setHasData(mouse.hasData);
     if (!mouse.hasData) return;
     // A value waiting to be sent must not be overwritten by the older one from the mouse.
     if (pendingSends.size || lightColorHeld) return;
@@ -2632,6 +2641,12 @@ if (window.__TAURI__) {
     renderMacros();
     listen("mouse-state", event => applyMouse(event.payload));
     invoke("get_mouse_state").then(applyMouse);
+    const applyBluetooth = state => {
+      bluetooth = state;
+      if (lastMouse) showStatus(lastMouse);
+    };
+    listen("bluetooth-state", event => applyBluetooth(event.payload));
+    invoke("get_bluetooth_state").then(applyBluetooth);
   });
 }
 </script>
