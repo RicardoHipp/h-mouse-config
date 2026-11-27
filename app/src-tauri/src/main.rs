@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod battery;
 mod bluetooth;
 mod hotkeys;
 mod mouse;
@@ -138,10 +139,12 @@ fn main() {
             tray::create(app.handle())?;
             tray::prepare_autostart(app.handle());
             overlay::create(app.handle());
+            battery::create(app.handle());
             let handle = app.handle().clone();
             let mouse = mouse::start(move |state| {
                 tray::refresh(&handle, &state);
                 overlay::mouse_changed(&handle, &state);
+                battery::observe(&handle);
                 let _ = handle.emit("mouse-state", state);
             });
             app.manage(mouse);
@@ -154,6 +157,7 @@ fn main() {
                 // A switch to or from Bluetooth also changes what the receiver sees.
                 mouse.check_online();
                 tray::refresh(&handle, &mouse.state());
+                battery::observe(&handle);
                 let _ = handle.emit("bluetooth-state", state);
             });
             #[cfg(windows)]
@@ -174,7 +178,7 @@ fn main() {
                 let _ = window.hide();
             }
         })
-        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state, get_bluetooth_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language, overlay::get_overlay_settings, overlay::save_overlay_settings, hotkeys::get_hotkeys, hotkeys::set_hotkey, hotkeys::pause_hotkeys, hotkeys::get_cycle_delay, hotkeys::set_cycle_delay])
+        .invoke_handler(tauri::generate_handler![get_version, get_mouse_state, get_bluetooth_state,mouse_command, export_config, import_config, load_macros, save_macros, load_profile_names, save_profile_names, tray::get_tray_settings, tray::save_tray_settings, tray::get_autostart, tray::set_autostart, tray::get_language, tray::set_language, overlay::get_overlay_settings, overlay::save_overlay_settings, hotkeys::get_hotkeys, hotkeys::set_hotkey, hotkeys::pause_hotkeys, hotkeys::get_cycle_delay, hotkeys::set_cycle_delay, battery::get_battery_settings, battery::save_battery_settings, battery::get_battery_overview, battery::open_battery_folder])
         .run(tauri::generate_context!())
         .expect("failed to run H-Mouse Config");
 }

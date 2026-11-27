@@ -670,8 +670,8 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
 .add { border-width: 1.5px; border-radius: var(--hand-corners); font-weight: 400; }
 
 /* Einstellungen: they belong to the app, so they also work without a mouse. */
-.no-data #page-settings { opacity: 1; pointer-events: auto; }
-#page-settings { display: grid; gap: 18px; justify-items: start; }
+.no-data :is(#page-settings, #page-battery) { opacity: 1; pointer-events: auto; }
+:is(#page-settings, #page-battery) { display: grid; gap: 18px; justify-items: start; }
 .tray-settings { width: 100%; max-width: 520px; display: grid; gap: 10px; }
 .tray-settings .section-head { margin-bottom: 2px; }
 .tray-head { display: grid; gap: 4px; margin-bottom: 4px; }
@@ -685,9 +685,25 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
 .tray-preview { padding: 2px 8px; border-radius: 5px; color: #fff; font: 700 13px "Segoe UI", sans-serif; }
 /* Two columns: the app settings on the left, overlay and hotkeys beside them. */
 @media (min-width: 1000px) {
-  #page-settings { grid-template-columns: repeat(2, minmax(0, 520px)); align-items: start; }
+  :is(#page-settings, #page-battery) { grid-template-columns: repeat(2, minmax(0, 520px)); align-items: start; }
 }
 .settings-column { width: 100%; max-width: 520px; display: grid; gap: 18px; }
+/* Akku */
+.battery-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.battery-level { color: var(--ink-strong); font-size: 52px; font-weight: 700; line-height: 1; }
+.battery-left { color: var(--ink); font-size: 20px; font-weight: 700; }
+.battery-basis { margin: 0; color: var(--muted); font-size: 14px; }
+.battery-chart { width: 100%; height: 170px; border: 1.5px solid var(--ink-line); border-radius: var(--hand-corners); background: var(--paper); }
+.battery-chart .grid { stroke: var(--ink-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.battery-chart .level { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.battery-chart .charge { fill: none; stroke: #1f8a50; stroke-width: 2.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.battery-days { display: flex; justify-content: space-between; margin: -6px 2px 0; color: var(--muted); font-size: 13px; }
+.battery-legend { display: flex; gap: 24px; margin: 0; color: var(--muted); font-size: 14px; }
+.battery-legend span::before { content: ""; display: inline-block; width: 22px; margin-right: 8px; vertical-align: middle; border-top: 2.2px solid var(--ink); }
+.battery-legend .charge::before { border-top-color: #1f8a50; }
+.battery-chart .gap { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+.battery-legend .gap::before { border-top: 1.6px dashed var(--ink); }
+.battery-keep.off { opacity: .4; pointer-events: none; }
 .hotkey-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 28px; align-items: center; gap: 4px 12px; }
 .hotkey-row + .hotkey-row { padding-top: 8px; border-top: 1.5px dashed var(--ink-soft); }
 .hotkey-key { min-height: 30px; padding: 3px 10px; border: 1.5px solid var(--ink); border-radius: var(--hand-corners); background: none; color: var(--ink); font-weight: 700; text-align: left; }
@@ -763,6 +779,7 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
     <button data-page="macros">Makros</button>
     <button data-page="perf">Sensor</button>
     <button data-page="settings">Einstellungen</button>
+    <button data-page="battery">Akku</button>
     <div class="nav-tools" id="config-tools">
       <div class="nav-tools-title">Konfiguration</div>
       <button id="config-export">Exportieren</button>
@@ -939,6 +956,50 @@ input[type="range"]:not(.hue)::-webkit-slider-thumb {
         </div>
         <p class="section-text" id="hotkey-status" role="status"></p>
       </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-battery" hidden>
+      <div class="settings-column">
+        <div class="card section tray-settings">
+          <div class="tray-head"><h2>Akkustand</h2><span class="hint">Restlaufzeit aus dem Verbrauch, Nächte und Pausen eingerechnet</span></div>
+          <div class="battery-now"><span class="battery-level" id="battery-level">–</span><span class="battery-left" id="battery-left"></span></div>
+          <p class="battery-basis" id="battery-basis"></p>
+          <svg class="battery-chart" viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="Akkustand der letzten 7 Tage">
+            <path class="grid" d="M0 10H600M0 80H600M0 150H600"/>
+            <path class="level" id="battery-line"/>
+            <path class="charge" id="battery-charge"/>
+            <path class="gap" id="battery-gap"/>
+          </svg>
+          <div class="battery-days" id="battery-days"></div>
+          <p class="battery-legend"><span>entlädt</span><span class="charge">lädt</span><span class="gap">ohne Messwerte</span></p>
+        </div>
+      </div>
+      <div class="settings-column">
+        <div class="card section tray-settings">
+          <div class="tray-head"><h2>Aufzeichnung</h2><span class="hint">Mit Verlauf kennt die Schätzung auch frühere Ladezyklen</span></div>
+          <div class="switch-row">
+            <div><b id="battery-record-label">Akkuverlauf aufzeichnen</b><small>Speichert die Werte in battery.csv im App-Ordner.</small></div>
+            <button class="switch" id="battery-record" role="switch" aria-labelledby="battery-record-label" aria-checked="false"></button>
+          </div>
+          <div class="battery-keep" id="battery-keep-box">
+            <b>Aufbewahren</b>
+            <div class="segments" id="battery-keep"></div>
+          </div>
+          <div><button type="button" class="macro-button" id="battery-folder">Ordner öffnen</button></div>
+          <p class="section-text" id="battery-status" role="status"></p>
+        </div>
+        <div class="card section tray-settings">
+          <div class="tray-head"><h2>Benachrichtigungen</h2><span class="hint">Als Windows-Benachrichtigung, auch wenn die App im Tray liegt</span></div>
+          <div class="switch-row">
+            <div><b id="battery-low-label">Warnen, wenn der Akku knapp wird</b><small id="battery-low-hint">Unter der roten Tray-Schwelle und unter 5 %.</small></div>
+            <button class="switch" id="battery-warn-low" role="switch" aria-labelledby="battery-low-label" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <div><b id="battery-full-label">Melden, wenn voll geladen</b><small>Einmal, sobald beim Laden 100 % erreicht sind.</small></div>
+            <button class="switch" id="battery-notify-full" role="switch" aria-labelledby="battery-full-label" aria-checked="true"></button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1180,7 +1241,9 @@ function renderLanguage() {
 $("language-flag").onclick = () => chooseLanguage(appLanguage.get() === "de" ? "en" : "de");
 
 /* Navigation */
-const TITLES = { keys: "Tasten", macros: "Makros", perf: "Sensor", settings: "Einstellungen" };
+const TITLES = { keys: "Tasten", macros: "Makros", perf: "Sensor", settings: "Einstellungen", battery: "Akku" };
+// Set by the app part, so that the battery page refreshes only while it is open.
+let onPageChange = () => {};
 document.querySelectorAll(".nav button[data-page]").forEach(button => {
   button.addEventListener("click", () => {
     const page = button.dataset.page;
@@ -1188,6 +1251,7 @@ document.querySelectorAll(".nav button[data-page]").forEach(button => {
     button.setAttribute("aria-current", "page");
     document.querySelectorAll(".page").forEach(p => { p.hidden = p.id !== "page-" + page; });
     $("title").textContent = TITLES[page];
+    onPageChange(page);
   });
 });
 
@@ -2872,6 +2936,92 @@ if (window.__TAURI__) {
     });
   }
   invoke("get_cycle_delay").then(renderCycleDelay);
+
+  /* Akku: the app part records and estimates, the page shows it while it is open. */
+  const tr = (german, english) => appLanguage.get() === "en" ? english : german;
+  const KEEP_DAYS = [30, 90, 180, 0];
+  let batterySettings = null;
+  let batteryTimer = 0;
+  function formatLeft(hours) {
+    const total = Math.round(hours);
+    if (total < 1) return tr("noch unter 1 Std.", "under 1 h left");
+    const days = Math.floor(total / 24), rest = total % 24;
+    if (!days) return tr(`noch ca. ${total} Std.`, `about ${total} h left`);
+    const dayText = tr(`${days} ${days === 1 ? "Tag" : "Tage"}`, `${days} ${days === 1 ? "day" : "days"}`);
+    return rest ? tr(`noch ca. ${dayText} ${rest} Std.`, `about ${dayText} ${rest} h left`) : tr(`noch ca. ${dayText}`, `about ${dayText} left`);
+  }
+  function basisText(overview) {
+    if (overview.level === null) return tr("Kein Akkustand, die Maus ist gerade nicht erreichbar.", "No battery level, the mouse cannot be reached right now.");
+    if (overview.charging) return tr("Lädt gerade, die Restlaufzeit folgt nach dem Abstecken.", "Charging, the time left follows after unplugging.");
+    if (overview.hoursLeft === null) {
+      return tr("Restlaufzeit wird ermittelt …", "Working out the time left …")
+        + (batterySettings?.record ? "" : tr(" Mit Aufzeichnung kennt die App auch frühere Ladezyklen.", " With recording the app also knows earlier cycles."));
+    }
+    const parts = [];
+    if (overview.cycles) parts.push(tr(`${overview.cycles} ${overview.cycles === 1 ? "früheren Entladung" : "früheren Entladungen"}`, `${overview.cycles} earlier ${overview.cycles === 1 ? "discharge" : "discharges"}`));
+    if (overview.currentHours >= 0.5) parts.push(tr(`${Math.round(overview.currentHours)} Std. seit dem Abstecken`, `${Math.round(overview.currentHours)} h since unplugging`));
+    return tr("Geschätzt aus ", "Estimated from ") + parts.join(tr(" und ", " and ")) + ".";
+  }
+  // Readings come only when the level changes, while the battery falls steadily, so straight lines join them.
+  // Charging is green. A fall of 2 % or more between two readings happened unseen, for example on another PC,
+  // so it is dashed. After the last reading the level holds until now.
+  function drawBatteryChart(history) {
+    const end = Date.now() / 1000, start = end - 7 * 86400;
+    const x = at => ((Math.min(Math.max(at, start), end) - start) / (end - start) * 600).toFixed(1);
+    const y = level => (150 - level * 1.4).toFixed(1);
+    let line = "", charge = "", gap = "";
+    history.forEach(([at, level, charging], i) => {
+      const next = history[i + 1] || [end, level, charging];
+      const piece = `M${x(at)} ${y(level)}L${x(next[0])} ${y(next[1])}`;
+      if (charging || next[2]) charge += piece;
+      else if (level - next[1] >= 2) gap += piece;
+      else line += piece;
+    });
+    $("battery-line").setAttribute("d", line);
+    $("battery-charge").setAttribute("d", charge);
+    $("battery-gap").setAttribute("d", gap);
+    const names = tr(["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"], ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+    $("battery-days").replaceChildren(...[6, 5, 4, 3, 2, 1, 0].map(back => el("span", { textContent: names[new Date((end - back * 86400) * 1000).getDay()] })));
+  }
+  async function refreshBattery() {
+    const overview = await invoke("get_battery_overview").catch(() => null);
+    if (!overview) return;
+    $("battery-level").textContent = overview.level === null ? "–" : overview.level + " %";
+    $("battery-left").textContent = overview.level === null ? "" : overview.charging ? tr("lädt", "charging") : overview.hoursLeft === null ? "" : formatLeft(overview.hoursLeft);
+    $("battery-basis").textContent = basisText(overview);
+    $("battery-low-hint").textContent = tr(`Unter ${overview.lowBelow} % (rote Tray-Farbe) und unter 5 %.`, `Below ${overview.lowBelow} % (red tray colour) and below 5 %.`);
+    drawBatteryChart(overview.history);
+  }
+  function renderBatterySettings() {
+    $("battery-record").setAttribute("aria-checked", String(batterySettings.record));
+    $("battery-warn-low").setAttribute("aria-checked", String(batterySettings.warnLow));
+    $("battery-notify-full").setAttribute("aria-checked", String(batterySettings.notifyFull));
+    $("battery-keep-box").classList.toggle("off", !batterySettings.record);
+    renderSegments("battery-keep", KEEP_DAYS, batterySettings.keepDays, days => days ? days + " Tage" : "Unbegrenzt", days => saveBatterySettings({ keepDays: days }));
+  }
+  async function saveBatterySettings(change) {
+    if (!batterySettings) return;
+    batterySettings = { ...batterySettings, ...change };
+    renderBatterySettings();
+    try {
+      await invoke("save_battery_settings", { settings: batterySettings });
+      $("battery-status").textContent = "";
+    } catch (error) {
+      $("battery-status").textContent = String(error);
+    }
+    refreshBattery();
+  }
+  $("battery-record").onclick = () => saveBatterySettings({ record: !batterySettings?.record });
+  $("battery-warn-low").onclick = () => saveBatterySettings({ warnLow: !batterySettings?.warnLow });
+  $("battery-notify-full").onclick = () => saveBatterySettings({ notifyFull: !batterySettings?.notifyFull });
+  $("battery-folder").onclick = () => invoke("open_battery_folder").catch(error => { $("battery-status").textContent = String(error); });
+  invoke("get_battery_settings").then(settings => { batterySettings = settings; renderBatterySettings(); });
+  onPageChange = page => {
+    clearInterval(batteryTimer);
+    if (page !== "battery") return;
+    refreshBattery();
+    batteryTimer = setInterval(refreshBattery, 30000);
+  };
 
   // The file is the truth, because the tray needs it too. The first start follows Windows.
   saveLanguage = language => { invoke("set_language", { language }).catch(error => setConfigStatus(String(error))); };

@@ -115,6 +115,11 @@ fn profile_label(labels: &[String], profile: usize, english: bool) -> String {
     }
 }
 
+/// The level below which the icon turns red, which is also where the battery warning comes.
+pub fn low_threshold(app: &AppHandle) -> u8 {
+    app.try_state::<TrayHandle>().map_or(TraySettings::default().low_below, |handle| handle.0.lock().unwrap().settings.low_below)
+}
+
 /// Whether the app speaks English, for texts made outside the page.
 pub fn english(app: &AppHandle) -> bool {
     app.try_state::<TrayHandle>().is_some_and(|handle| handle.0.lock().unwrap().english)
