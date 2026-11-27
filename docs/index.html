@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H-Mouse Config – free Lofree Hypace software for Windows</title>
+<meta name="description" content="Free, open-source Windows app to configure the Lofree Hypace mouse: buttons, macros, DPI, polling rate, profiles, battery and an on-screen overlay. Works offline, no browser or web driver needed.">
+<meta name="keywords" content="Lofree Hypace software, Lofree Hypace driver, Hypace config, Hypace Windows app, Lofree mouse software">
+<link rel="canonical" href="https://ricardohipp.github.io/h-mouse-config/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="H-Mouse Config – Lofree Hypace software for Windows">
+<meta property="og:description" content="Configure the Lofree Hypace offline: buttons, macros, DPI, polling rate, profiles, battery, overlay and profile hotkeys.">
+<meta property="og:url" content="https://ricardohipp.github.io/h-mouse-config/">
+<meta property="og:image" content="https://ricardohipp.github.io/h-mouse-config/screen1.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "H-Mouse Config",
+  "description": "Unofficial configuration app for the Lofree Hypace mouse on Windows.",
+  "operatingSystem": "Windows 10, Windows 11",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "url": "https://ricardohipp.github.io/h-mouse-config/",
+  "downloadUrl": "https://github.com/RicardoHipp/h-mouse-config/releases/latest",
+  "license": "https://opensource.org/licenses/MIT"
+}
+</script>
+<style>
+@font-face { font-family: "Kalam"; font-weight: 400; src: url("fonts/kalam-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Kalam"; font-weight: 700; src: url("fonts/kalam-latin-700-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Caveat"; font-weight: 700; src: url("fonts/caveat-latin-700-normal.woff2") format("woff2"); font-display: swap; }
+:root {
+  --ink: #2730a8;
+  --ink-strong: #171c74;
+  --ink-soft: #e9ebfb;
+  --ink-line: #c9cdf0;
+  --paper: #ffffff;
+  --page: #edf0f8;
+  --text: #1c1f3f;
+  --muted: #666a8c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #9aa3ff;
+    --ink-strong: #c9ceff;
+    --ink-soft: #262a52;
+    --ink-line: #3b4180;
+    --paper: #171a34;
+    --page: #10122a;
+    --text: #e3e5f7;
+    --muted: #9da1c4;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font: 17px/1.55 "Kalam", "Segoe Print", cursive;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--ink); }
+.wrap { width: min(1080px, 100% - 32px); margin: 0 auto; }
+header { padding: 56px 0 24px; text-align: center; }
+h1, h2 { font-family: "Caveat", "Kalam", cursive; color: var(--ink-strong); line-height: 1.1; margin: 0; }
+h1 { font-size: clamp(44px, 8vw, 72px); }
+h2 { font-size: clamp(32px, 5vw, 44px); margin-bottom: 14px; }
+h3 { margin: 0 0 4px; color: var(--ink); font-size: 19px; }
+.tagline { margin: 10px auto 0; max-width: 680px; font-size: 20px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 26px; }
+.button {
+  display: inline-block;
+  padding: 10px 22px;
+  border: 1.8px solid var(--ink);
+  border-radius: 14px 9px 15px 8px / 9px 15px 8px 14px;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.button.primary { background: var(--ink); color: var(--paper); }
+.button:hover { transform: translateY(-1px); }
+.small { color: var(--muted); font-size: 15px; }
+.shot {
+  margin: 30px auto 0;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 12px 40px rgba(23, 28, 116, .12);
+}
+section { padding: 44px 0 8px; }
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+.card {
+  padding: 18px 20px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 16px 10px 18px 9px / 10px 18px 9px 16px;
+  background: var(--paper);
+}
+.card p { margin: 0; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; align-items: start; }
+.gallery figure { margin: 0; }
+.gallery img { border: 1.5px solid var(--ink-line); border-radius: 10px; background: var(--paper); }
+figcaption { margin-top: 6px; color: var(--muted); font-size: 15px; text-align: center; }
+table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1.5px solid var(--ink-line); border-radius: 12px; overflow: hidden; }
+th, td { padding: 9px 12px; border-bottom: 1px dashed var(--ink-line); text-align: left; vertical-align: top; }
+th { color: var(--ink); }
+tr:last-child td { border-bottom: 0; }
+.table-wrap { overflow-x: auto; }
+ol { padding-left: 22px; }
+.note { padding: 14px 18px; border-left: 3px solid var(--ink); background: var(--ink-soft); border-radius: 0 10px 10px 0; }
+footer { padding: 40px 0 50px; color: var(--muted); font-size: 15px; text-align: center; }
+@media (max-width: 600px) {
+  header { padding-top: 36px; }
+  .tagline { font-size: 18px; }
+  th, td { padding: 8px; font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>H-Mouse Config</h1>
+  <p class="tagline">A free Windows app to configure the <strong>Lofree Hypace</strong> mouse. Offline, without a browser and without the vendor's web driver.</p>
+  <div class="actions">
+    <a class="button primary" href="https://github.com/RicardoHipp/h-mouse-config/releases/latest">Download for Windows</a>
+    <a class="button" href="https://github.com/RicardoHipp/h-mouse-config">Source code on GitHub</a>
+  </div>
+  <p class="small">Portable ZIP · Windows 10 and 11 · English and German · MIT licence</p>
+  <div class="shot"><img src="screen1.png" width="1411" height="816" alt="H-Mouse Config: the buttons page with a sketch of the Lofree Hypace"></div>
+</header>
+
+<main class="wrap">
+  <section id="features">
+    <h2>What it does</h2>
+    <div class="features">
+      <div class="card"><h3>Buttons and macros</h3><p>Mouse functions, key combinations, multimedia keys, rapid fire, DPI and polling switch, macros with recording, plus profile switch and DPI lock.</p></div>
+      <div class="card"><h3>Sensor</h3><p>DPI stages, polling rate, lift-off distance, debounce, ripple control, angle snapping, motion sync and sleep time.</p></div>
+      <div class="card"><h3>Four profiles</h3><p>Give them your own names, copy one profile into others, switch from the tray or with a keyboard shortcut.</p></div>
+      <div class="card"><h3>Overlay</h3><p>After a switch a small box shows the new DPI, polling rate or profile, with the battery level, on top of other windows.</p></div>
+      <div class="card"><h3>Profile hotkeys</h3><p>Any key combination for the next, previous or a certain profile, with warnings for combinations that other programs use.</p></div>
+      <div class="card"><h3>Battery</h3><p>Battery level from a measured voltage curve, time left from your own use, a 7-day chart and Windows notifications.</p></div>
+      <div class="card"><h3>Tray icon</h3><p>Shows the active DPI on a background coloured by battery level, starts with Windows and stays out of the way.</p></div>
+      <div class="card"><h3>Receiver, cable and Bluetooth</h3><p>Finds the mouse on its own and prefers the cable. Over Bluetooth it shows connection and battery level.</p></div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <h2>Screenshots</h2>
+    <div class="gallery">
+      <figure><img src="screen2.png" loading="lazy" alt="Sensor page with DPI stages and polling rate"><figcaption>Sensor settings</figcaption></figure>
+      <figure><img src="screen3.png" loading="lazy" alt="Macros page with a recorded key sequence"><figcaption>Macros</figcaption></figure>
+      <figure><img src="screen4.png" loading="lazy" alt="Settings page with overlay and profile hotkeys"><figcaption>Settings</figcaption></figure>
+      <figure><img src="hotkeys.png" loading="lazy" alt="Profile hotkeys with cycling delay"><figcaption>Profile hotkeys</figcaption></figure>
+      <figure><img src="overlay.png" loading="lazy" alt="Overlay settings"><figcaption>Overlay settings</figcaption></figure>
+      <figure><img src="tray-menu.png" loading="lazy" alt="Tray menu with the four profiles"><figcaption>Tray menu</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="compare">
+    <h2>Compared with the vendor's web tool</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>H-Mouse Config</th><th>Vendor web tool</th></tr></thead>
+        <tbody>
+          <tr><td>Runs as</td><td>Windows app in the tray</td><td>page in Chrome, Edge or Opera</td></tr>
+          <tr><td>Profile names</td><td>your own names</td><td>Profile#01 to #04</td></tr>
+          <tr><td>Copy a profile</td><td>yes</td><td>no</td></tr>
+          <tr><td>Profile switch and DPI lock on a button</td><td>yes</td><td>not offered</td></tr>
+          <tr><td>Profile hotkeys</td><td>yes</td><td>no</td></tr>
+          <tr><td>Overlay</td><td>yes</td><td>no</td></tr>
+          <tr><td>Battery time left and history</td><td>yes</td><td>no</td></tr>
+          <tr><td>Bluetooth status</td><td>connection and battery</td><td>not supported</td></tr>
+          <tr><td>Firmware updates, pairing a new receiver</td><td>not included</td><td>yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Getting started</h2>
+    <ol>
+      <li>Download the ZIP from the <a href="https://github.com/RicardoHipp/h-mouse-config/releases/latest">latest release</a>.</li>
+      <li>Unpack it anywhere and start <code>h-mouse-config.exe</code>. The EXE is not signed, so Windows SmartScreen may ask once.</li>
+      <li>Plug in the receiver or the cable. The app finds the Hypace by itself.</li>
+    </ol>
+    <p class="note">This is an independent project with no connection to Lofree. All trademarks belong to their owners. The app writes settings to the mouse, use it at your own risk.</p>
+  </section>
+</main>
+
+<footer class="wrap">
+  H-Mouse Config · <a href="https://github.com/RicardoHipp/h-mouse-config">GitHub</a> · MIT licence ·
+  Fonts Kalam and Caveat under the SIL Open Font License
+</footer>
+</body>
+</html>

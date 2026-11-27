@@ -1,10 +1,14 @@
-# H-Mouse Config
+# H-Mouse Config – Lofree Hypace software for Windows
 
-Unofficial configuration app for the Lofree Hypace.
+**H-Mouse Config is a free, open-source Windows app to configure the Lofree Hypace mouse:**
+button mapping, macros, DPI stages, polling rate, profiles, battery and an on-screen overlay.
+It works offline as a normal desktop app in the tray, without a browser and without the
+vendor's WebHID web driver.
 
-A small Windows desktop app to configure the Lofree Hypace mouse without the
-vendor's website. Built with Rust and Tauri 2, the interface is available in
-German and English.
+**[Download for Windows](https://github.com/RicardoHipp/h-mouse-config/releases/latest)** ·
+[Website](https://ricardohipp.github.io/h-mouse-config/)
+
+Built with Rust and Tauri 2, the interface is available in English and German.
 
 **This is an independent project with no connection to Lofree.** All trademarks
 belong to their owners. Use at your own risk: the app writes settings to the
@@ -28,6 +32,8 @@ mouse, and nothing here is tested or endorsed by the manufacturer.
 - Tray icon with DPI and battery colour, quick profile switching, start with Windows
 - Overlay with the new DPI, polling rate or profile and the battery level
 - Profile hotkeys that work from anywhere
+- Battery page with time left, a 7-day chart, optional recording to a CSV file and Windows
+  notifications when the battery runs low or is full
 - Bluetooth: the window shows the connection and battery level, and the tray icon shows the
   battery percentage instead of the DPI. Over Bluetooth the mouse reports only its battery level,
   so settings and profiles are locked and need the receiver or the cable
@@ -47,6 +53,8 @@ Compared with Lofree's own web tool for the Hypace, this app adds:
 | Overlay after a DPI, polling or profile switch | yes, with battery level | no |
 | Tray icon | active DPI, background by battery level, profile menu | no |
 | Battery | own voltage curve, charging state, raw value and voltage | value reported by the mouse |
+| Time left and battery history | estimated from your own use, optional CSV recording | no |
+| Battery warnings | Windows notification when low or full | no |
 | Bluetooth | shows connection and battery | not supported |
 | Languages | German, English | English, Chinese |
 
